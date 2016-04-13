@@ -4,7 +4,7 @@ public class Main {
 
     public static void main(String[] args) {
         if (args.length == 0) {
-            System.out.println("usage: program_name file_name");
+            System.out.println("usage: java -jar jfs.jar file_name");
             return;
         }
 
