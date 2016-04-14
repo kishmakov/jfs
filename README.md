@@ -1,1 +1,4 @@
 # jfs
+
+TOCTTOU
+EAFP vs LBYL
