@@ -28,9 +28,8 @@ public final class FileManager {
 
         System.out.printf("lock1.isShared = %b, lock2.isShared = %b\n", lock1.isShared(), lock2.isShared());
 
-        FileLock lock3 = myChanel.tryLock(4, 4, false);
-
-        System.out.printf("lock3.isNull = %b\n", lock3 == null);
+//        FileLock lock3 = myChanel.tryLock(4, 4, false);
+//        System.out.printf("lock3.isNull = %b\n", lock3 == null);
 
         ByteBuffer signature = ByteBuffer.allocate(4);
         myChanel.read(signature, 0);
