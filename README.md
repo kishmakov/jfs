@@ -51,4 +51,9 @@ Size   | Description
 4      | Pointer to data block #11
 4      | Singly indirect pointer
 4      | Doubly indirect pointer
-  
+
+### Directory
+
+Directories are supposed to be a specifc files, holding linked lists of pairs
+`(inode number, name)`. Implementation is motivated by [ext2 directory organisation](http://www.nongnu.org/ext2-doc/ext2.html#DIRECTORY).
+
