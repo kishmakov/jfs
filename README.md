@@ -20,8 +20,8 @@ EAFP vs LBYL
 Section        | Size    | Description
 --------------:|:-------:|------------
 Header         | 18      | Current file geometry description
--              | 4       | Signature to testify JFS file, must be `0xAABBCCDD`
--              | 2       | `DBS`, size of data block in bytes, like `0x1000`
+-              | 4       | Signature to testify JFS file, presctibed to be `0xAABBCCDD`
+-              | 2       | `DBS`, data block size, coul be `0x1000`
 -              | 4       | `IN`, number of inodes
 -              | 4       | Pointer to the first vacant inode
 -              | 4       | Pointer to the first vacant data block
