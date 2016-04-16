@@ -48,7 +48,7 @@ Size   | Description
 4      | Pointer to data block #8
 4      | Pointer to data block #9
 4      | Pointer to data block #10
+4      | Pointer to data block #11
 4      | Singly indirect pointer
 4      | Doubly indirect pointer
-4      | Triply indirect pointer
   
