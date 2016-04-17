@@ -31,7 +31,7 @@ Section        |Offset |Size     | Description
 --------------:|:-----:|:-------:|------------
 -              | 0     | 4       | magic number to sign JFS file, prescribed to be `0xAABBCCDD`
 -              | 4     | 2       | file system version, currently fixed to `0x0000`
--              | 6     | 2       | data block size, currently fixed to 4KB, `0x1000`
+-              | 6     | 2       | size of data block, currently fixed to 4KB, `0x1000`
 -              | 8     | 4       | total number of inodes in file system
 -              | 12    | 4       | total number of blocks in file system
 -              | 16    | 4       | total number of unallocated inodes
