@@ -11,6 +11,9 @@ public final class FileManager {
 
     private static final int SIGNATURE = 0xAABBCCDD;
 
+    public static final int MINIMAL_SIZE = 239;
+    public static final int MAXIMAL_SIZE = 100500;
+
     private FileChannel myChanel;
     private RandomAccessFile myRWFile;
 
