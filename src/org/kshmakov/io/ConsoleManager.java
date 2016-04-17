@@ -34,12 +34,12 @@ public class ConsoleManager {
             return "bad size description provided";
         }
 
-        if (size < FileManager.MINIMAL_SIZE) {
-            return "required size is too small, minimal size is " + Long.toString(FileManager.MINIMAL_SIZE);
+        if (size < FileManager.MIN_SIZE) {
+            return "required size is too small, minimal size is " + Long.toString(FileManager.MIN_SIZE);
         }
 
-        if (size > FileManager.MAXIMAL_SIZE) {
-            return "required size is too big, maximal size is " + Long.toString(FileManager.MAXIMAL_SIZE);
+        if (size > FileManager.MAX_SIZE) {
+            return "required size is too big, maximal size is " + Long.toString(FileManager.MAX_SIZE);
         }
 
         try {

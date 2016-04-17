@@ -5,28 +5,56 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteOrder;
-import java.nio.IntBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
 
 public final class FileManager {
-    public static final long MINIMAL_SIZE = 239;
-    public static final long MAXIMAL_SIZE = 100500;
+    public static final long MIN_SIZE = 239;
+    public static final long MAX_SIZE = 100500;
 
     private static final int SIGNATURE = 0xAABBCCDD;
 
-    private static final long BLOCK_SIZE = 4096;
+    private static final long HEADER_SIZE = 18;
     private static final long INODE_SIZE = 64;
+    private static final long BLOCK_SIZE = 4096;
+
+    private enum INODE_TYPE {
+        DIRECTORY,
+        FILE
+    }
 
     private static boolean isFile(String name) {
         File file = new File(name);
         return file.exists() && !file.isDirectory();
     }
 
-    private static int inodesNumbers(long size) {
+    private static int numberOfInodes(long size) {
+        assert size >= MIN_SIZE && size <= MAX_SIZE;
         // heuristic rule, see https://en.wikipedia.org/wiki/Inode#Details
-        return (int) (Math.min(size, MAXIMAL_SIZE) / (100 * INODE_SIZE));
+        return (int) (size / (100 * INODE_SIZE));
+    }
+
+    private static int numberOfBlocks(long size) {
+        assert size >= MIN_SIZE && size <= MAX_SIZE;
+        long inodesSize = numberOfInodes(size) * INODE_SIZE;
+        long blocksSize = size - HEADER_SIZE - inodesSize;
+        return (int) (blocksSize / BLOCK_SIZE);
+    }
+
+    private static ByteBuffer allocateBuffer(int size) {
+        ByteBuffer buffer = ByteBuffer.allocate(size);
+        buffer.order(ByteOrder.BIG_ENDIAN);
+        return buffer;
+    }
+
+    private static int writeBuffer(FileChannel channel, ByteBuffer buffer) throws IOException {
+        buffer.flip();
+        buffer.limit(buffer.capacity());
+        int result = channel.write(buffer);
+        System.out.printf("channel.pos=%d\n", channel.position());
+        assert result == buffer.capacity();
+        return result;
     }
 
     public static void formatFile(String fileName) throws IOException {
@@ -39,25 +67,49 @@ public final class FileManager {
 
         long fileSize = channel.size();
 
-        if (fileSize < MINIMAL_SIZE) {
+        if (fileSize < MIN_SIZE) {
             throw new IOException("file is too small");
         }
 
-        if (fileSize > MAXIMAL_SIZE) {
+        if (fileSize > MAX_SIZE) {
             throw new IOException("file is too big");
         }
 
-        ByteBuffer header = ByteBuffer.allocate(18);
-        header.order(ByteOrder.BIG_ENDIAN);
+        ByteBuffer header = allocateBuffer((int) HEADER_SIZE);
 
         header.putInt(SIGNATURE);
         header.putShort((short) BLOCK_SIZE);
-        header.putInt(inodesNumbers(fileSize));
+        header.putInt(numberOfInodes(fileSize));
         header.putInt(2); // first vacant inode
         header.putInt(2); // first vacant data block
-        header.flip();
 
-        int written = channel.write(header);
+        writeBuffer(channel, header);
+
+        int inodesNum = numberOfInodes(fileSize);
+        for (int inodeId = 0; inodeId < inodesNum; inodeId++) {
+            ByteBuffer inode = allocateBuffer((int) INODE_SIZE);
+            if (inodeId > 0) {
+                inode.putInt((inodeId + 2) % (inodesNum + 1));
+            } else {
+                inode.putInt((INODE_TYPE.DIRECTORY.ordinal() << 24) + 0x000001);
+                inode.putInt((int) BLOCK_SIZE);
+                inode.putInt(0x00000001); // pointer to first data block
+            }
+
+            writeBuffer(channel, inode);
+        }
+
+        int blocksNum = numberOfBlocks(fileSize);
+        for (int blockId = 0; blockId < blocksNum; blockId++) {
+            ByteBuffer block = allocateBuffer((int) BLOCK_SIZE);
+            if (blockId > 0) {
+                block.putInt((blockId + 2) % (blocksNum + 1));
+            } else {
+                // TODO: empty directory layout
+            }
+
+            writeBuffer(channel, block);
+        }
     }
 
     private FileChannel myChanel;
