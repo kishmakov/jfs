@@ -35,7 +35,7 @@ public final class FileManager {
         Header header = new Header();
 
         header.inodesTotal = numberOfInodes(fileSize);
-        header.blocksTotal = numberOfBlocks(fileSize, header.DATA_BLOCK_SIZE);
+        header.blocksTotal = numberOfBlocks(fileSize, Header.DATA_BLOCK_SIZE);
 
         header.inodesUnallocated = header.inodesTotal - 1;
         header.blocksUnallocated = header.blocksTotal - 1;
@@ -58,7 +58,7 @@ public final class FileManager {
                 inode.putInt((inodeId + 2) % (header.inodesTotal + 1));
             } else {
                 inode.putInt((INODE_TYPE.DIRECTORY.ordinal() << 24) + 0x000001);
-                inode.putInt(header.DATA_BLOCK_SIZE);
+                inode.putInt(Header.DATA_BLOCK_SIZE);
                 inode.putInt(0x00000001); // pointer to first data block
             }
 
@@ -66,7 +66,7 @@ public final class FileManager {
         }
 
         for (int blockId = 0; blockId < header.blocksTotal; blockId++) {
-            ByteBuffer block = allocateBuffer(header.DATA_BLOCK_SIZE);
+            ByteBuffer block = allocateBuffer(Header.DATA_BLOCK_SIZE);
             if (blockId > 0) {
                 block.putInt((blockId + 2) % (header.blocksTotal + 1));
             } else {
@@ -82,10 +82,10 @@ public final class FileManager {
     public FileManager(String name) throws IOException {
         myFileAccessor = new FileAccessor(name);
 
-        ByteBuffer header = myFileAccessor.readBuffer(0, Parameters.HEADER_SIZE);
+        ByteBuffer headerBuffer = myFileAccessor.readBuffer(0, Parameters.HEADER_SIZE);
+        Header header = new Header(headerBuffer);
 
-        if (header.getInt() != Parameters.MAGIC_NUMBER) {
-            throw new IOException("Bad file provided.");
-        }
+        System.out.printf("inodes total = %d\n", header.inodesTotal);
+        System.out.printf("blocks total = %d\n", header.blocksTotal);
     }
 }

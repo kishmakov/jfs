@@ -41,7 +41,8 @@ public class FileAccessor {
     public ByteBuffer readBuffer(long position, int size) throws IOException {
         assert position + size <= fileSize;
         ByteBuffer result = ByteBuffer.allocate(size);
-        myChannel.read(result, size);
+        result.order(Parameters.ENDIANNESS);
+        myChannel.read(result, position);
         return result;
     }
 

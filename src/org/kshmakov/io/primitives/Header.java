@@ -2,6 +2,7 @@ package org.kshmakov.io.primitives;
 
 import org.kshmakov.io.Parameters;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class Header {
@@ -16,6 +17,33 @@ public class Header {
 
     public int firstUnallocatedInode;
     public int firstUnallocatedBlock;
+
+    public Header() {
+    }
+
+    public Header(ByteBuffer buffer) throws IOException {
+        assert buffer.capacity() == Parameters.HEADER_SIZE;
+        buffer.rewind();
+
+        if (buffer.getInt() != Parameters.MAGIC_NUMBER) {
+            throw new IOException("provided file does not correspond to jfs format");
+        }
+
+        short version = buffer.getShort();
+        short blockSize = buffer.getShort();
+
+        assert version == FILE_SYSTEM_VERSION;
+        assert blockSize == DATA_BLOCK_SIZE;
+
+        inodesTotal = buffer.getInt();
+        blocksTotal = buffer.getInt();
+
+        inodesUnallocated = buffer.getInt();
+        blocksUnallocated = buffer.getInt();
+
+        firstUnallocatedInode = buffer.getInt();
+        firstUnallocatedBlock = buffer.getInt();
+    }
 
     public ByteBuffer toBuffer() {
         ByteBuffer buffer = ByteBuffer.allocate(Parameters.HEADER_SIZE);
