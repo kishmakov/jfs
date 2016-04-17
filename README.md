@@ -11,23 +11,34 @@ EAFP vs LBYL
 * All sizes are denominated in bytes
 * Data block size could vary in diapason 256B(?) — 16KB, must be multiple of 4
   bytes
-* Inodes and data blocks numerations start from 1; number 0 is meant to be NIL
+* Numerations for inodes and data blocks start from 1; number 0 is meant to be NIL
 * Inodes tree starts from the inode number 1
-* Vacant inodes and data blocks are linked into lists; pointers to the heads
+* Unallocated inodes and data blocks are linked into lists; pointers to the heads
   of these lists are stored in the header section
 
 ### File Partition Overview
 
-Section        | Size    | Description
---------------:|:-------:|------------
-Header         | 18      | Current file geometry description
--              | 4       | Signature to testify JFS file, presctibed to be `0xAABBCCDD`
--              | 2       | `DBS`, data block size, coul be `0x1000`
--              | 4       | `IN`, number of inodes
--              | 4       | Pointer to the first vacant inode
--              | 4       | Pointer to the first vacant data block
-Inodes section |64 x `IN`| Starts after header, contains `IN` cells describing corresponding inodes
-Data section   |       ? | Starts after inodes section and stretches till the end of the file
+File is partitioned into 3 subsequently allocated sections:
+1. Header
+2. Inode Table
+3. Data Blocks
+
+#### Header
+
+Header has fixed size 32 bytes. It's layout is as follows:
+
+Section        |Offset |Size     | Description
+--------------:|:-----:|:-------:|------------
+-              | 0     | 4       | magic number to sign JFS file, prescribed to be `0xAABBCCDD`
+-              | 4     | 2       | file system version, currently fixed to `0x0000`
+-              | 6     | 2       | data block size, currently fixed to 4KB, `0x1000`
+-              | 8     | 4       | total number of inodes in file system
+-              | 12    | 4       | total number of blocks in file system
+-              | 16    | 4       | total number of unallocated inodes
+-              | 20    | 4       | total number of unallocated blocks
+-              | 24    | 4       | first unallocated inode
+-              | 28    | 4       | first unallocated data block
+
 
 ### Inode Overview
 
