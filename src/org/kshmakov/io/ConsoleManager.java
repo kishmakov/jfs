@@ -26,7 +26,7 @@ public class ConsoleManager {
             return "file size is not provided, " + usage;
         }
 
-        int size = 0;
+        int size;
 
         try {
             size = Integer.parseInt(command[2]);
@@ -34,12 +34,12 @@ public class ConsoleManager {
             return "bad size description provided";
         }
 
-        if (size < FileManager.MIN_SIZE) {
-            return "required size is too small, minimal size is " + Long.toString(FileManager.MIN_SIZE);
+        if (size < Parameters.MIN_SIZE) {
+            return "required size is too small, minimal size is " + Long.toString(Parameters.MIN_SIZE);
         }
 
-        if (size > FileManager.MAX_SIZE) {
-            return "required size is too big, maximal size is " + Long.toString(FileManager.MAX_SIZE);
+        if (size > Parameters.MAX_SIZE) {
+            return "required size is too big, maximal size is " + Long.toString(Parameters.MAX_SIZE);
         }
 
         try {
