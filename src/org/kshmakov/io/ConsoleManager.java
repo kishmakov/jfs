@@ -26,7 +26,6 @@ public class ConsoleManager {
             return "file size is not provided, " + usage;
         }
 
-
         int size = 0;
 
         try {
@@ -36,11 +35,11 @@ public class ConsoleManager {
         }
 
         if (size < FileManager.MINIMAL_SIZE) {
-            return "required size is too small, minimal size is " + Integer.toString(FileManager.MINIMAL_SIZE);
+            return "required size is too small, minimal size is " + Long.toString(FileManager.MINIMAL_SIZE);
         }
 
         if (size > FileManager.MAXIMAL_SIZE) {
-            return "required size is too big, maximal size is " + Integer.toString(FileManager.MAXIMAL_SIZE);
+            return "required size is too big, maximal size is " + Long.toString(FileManager.MAXIMAL_SIZE);
         }
 
         try {
@@ -51,11 +50,23 @@ public class ConsoleManager {
         }
 
         String formatResult = formatFile(command);
-        return formatResult.isEmpty() ? "created" : formatResult;
+        return formatResult.isEmpty() ? "done" : formatResult;
     }
 
     private String formatFile(String command[]) {
-        return "";
+        String usage = "usage: format file_name";
+
+        if (command.length < 2) {
+            return "file name is not provided, " + usage;
+        }
+
+        try {
+            FileManager.formatFile(command[1]);
+        } catch (IOException e) {
+            return "could not format file, reason: " + e.getMessage();
+        }
+
+        return "done";
     }
 
     private String mountFile(String command[]) {

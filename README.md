@@ -7,6 +7,7 @@ EAFP vs LBYL
 
 ### Principles
 
+* Big-endian order is used
 * All sizes are denominated in bytes
 * Data block size could vary in diapason 256B(?) — 16KB, must be multiple of 4
   bytes
