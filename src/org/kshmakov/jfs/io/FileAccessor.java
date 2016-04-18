@@ -1,10 +1,11 @@
-package org.kshmakov.io;
+package org.kshmakov.jfs.io;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 
 public class FileAccessor {
@@ -38,10 +39,16 @@ public class FileAccessor {
 
     }
 
+    public static ByteBuffer newBuffer(int size) {
+        ByteBuffer buffer = ByteBuffer.allocate(size);
+        buffer.order(ByteOrder.BIG_ENDIAN);
+        return buffer;
+    }
+
     public ByteBuffer readBuffer(long position, int size) throws IOException {
         assert position + size <= fileSize;
         ByteBuffer result = ByteBuffer.allocate(size);
-        result.order(Parameters.ENDIANNESS);
+        result.order(ByteOrder.BIG_ENDIAN);
         myChannel.read(result, position);
         return result;
     }

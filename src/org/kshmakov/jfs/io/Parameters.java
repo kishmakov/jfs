@@ -1,6 +1,4 @@
-package org.kshmakov.io;
-
-import java.nio.ByteOrder;
+package org.kshmakov.jfs.io;
 
 public interface Parameters {
     long MIN_SIZE = 239;
@@ -10,6 +8,4 @@ public interface Parameters {
     int INODE_SIZE = 64;
 
     int MAGIC_NUMBER = 0xAABBCCDD;
-
-    ByteOrder ENDIANNESS = ByteOrder.BIG_ENDIAN;
 }

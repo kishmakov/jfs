@@ -1,4 +1,4 @@
-package org.kshmakov.io;
+package org.kshmakov.jfs.io;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

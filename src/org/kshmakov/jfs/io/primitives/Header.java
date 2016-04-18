@@ -1,6 +1,7 @@
-package org.kshmakov.io.primitives;
+package org.kshmakov.jfs.io.primitives;
 
-import org.kshmakov.io.Parameters;
+import org.kshmakov.jfs.io.FileAccessor;
+import org.kshmakov.jfs.io.Parameters;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -15,8 +16,8 @@ public class Header {
     public int inodesUnallocated;
     public int blocksUnallocated;
 
-    public int firstUnallocatedInode;
-    public int firstUnallocatedBlock;
+    public int firstUnallocatedInodeId;
+    public int firstUnallocatedBlockId;
 
     public Header() {
     }
@@ -41,13 +42,12 @@ public class Header {
         inodesUnallocated = buffer.getInt();
         blocksUnallocated = buffer.getInt();
 
-        firstUnallocatedInode = buffer.getInt();
-        firstUnallocatedBlock = buffer.getInt();
+        firstUnallocatedInodeId = buffer.getInt();
+        firstUnallocatedBlockId = buffer.getInt();
     }
 
     public ByteBuffer toBuffer() {
-        ByteBuffer buffer = ByteBuffer.allocate(Parameters.HEADER_SIZE);
-        buffer.order(Parameters.ENDIANNESS);
+        ByteBuffer buffer = FileAccessor.newBuffer(Parameters.HEADER_SIZE);
 
         buffer.putInt(Parameters.MAGIC_NUMBER);
         buffer.putShort(FILE_SYSTEM_VERSION);
@@ -59,8 +59,8 @@ public class Header {
         buffer.putInt(inodesUnallocated);
         buffer.putInt(blocksUnallocated);
 
-        buffer.putInt(firstUnallocatedInode);
-        buffer.putInt(firstUnallocatedBlock);
+        buffer.putInt(firstUnallocatedInodeId);
+        buffer.putInt(firstUnallocatedBlockId);
 
         return buffer;
     }

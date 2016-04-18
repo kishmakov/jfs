@@ -1,6 +1,7 @@
-package org.kshmakov.io;
+package org.kshmakov.jfs.io;
 
-import org.kshmakov.io.primitives.Header;
+import org.kshmakov.jfs.io.primitives.Header;
+import org.kshmakov.jfs.io.primitives.Inode;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -25,12 +26,6 @@ public final class FileManager {
         return (int) (sizeLeft / blockSize);
     }
 
-    private static ByteBuffer allocateBuffer(int size) {
-        ByteBuffer buffer = ByteBuffer.allocate(size);
-        buffer.order(Parameters.ENDIANNESS);
-        return buffer;
-    }
-
     private static Header defaultHeader(long fileSize) {
         Header header = new Header();
 
@@ -40,8 +35,8 @@ public final class FileManager {
         header.inodesUnallocated = header.inodesTotal - 1;
         header.blocksUnallocated = header.blocksTotal - 1;
 
-        header.firstUnallocatedInode = 2;
-        header.firstUnallocatedBlock = 2;
+        header.firstUnallocatedInodeId = 2;
+        header.firstUnallocatedBlockId = 2;
 
         return header;
     }
@@ -53,20 +48,21 @@ public final class FileManager {
         accessor.writeBuffer(header.toBuffer());
 
         for (int inodeId = 0; inodeId < header.inodesTotal; inodeId++) {
-            ByteBuffer inode = allocateBuffer(Parameters.INODE_SIZE);
+            Inode inode = new Inode(inodeId == 0 ? Inode.ALLOCATED : Inode.UNALLOCATED);
+
             if (inodeId > 0) {
-                inode.putInt((inodeId + 2) % (header.inodesTotal + 1));
+                inode.nextId = (inodeId + 2) % (header.inodesTotal + 1);
             } else {
-                inode.putInt((INODE_TYPE.DIRECTORY.ordinal() << 24) + 0x000001);
-                inode.putInt(Header.DATA_BLOCK_SIZE);
-                inode.putInt(0x00000001); // pointer to first data block
+                inode.type = Inode.Type.DIRECTORY;
+                inode.parentId = 1;
+                inode.directPointers[0] = 1;
             }
 
-            accessor.writeBuffer(inode);
+            accessor.writeBuffer(inode.toBuffer());
         }
 
         for (int blockId = 0; blockId < header.blocksTotal; blockId++) {
-            ByteBuffer block = allocateBuffer(Header.DATA_BLOCK_SIZE);
+            ByteBuffer block = FileAccessor.newBuffer(Header.DATA_BLOCK_SIZE);
             if (blockId > 0) {
                 block.putInt((blockId + 2) % (header.blocksTotal + 1));
             } else {

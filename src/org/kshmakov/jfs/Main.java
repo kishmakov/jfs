@@ -1,6 +1,6 @@
-package org.kshmakov;
+package org.kshmakov.jfs;
 
-import org.kshmakov.io.ConsoleManager;
+import org.kshmakov.jfs.io.ConsoleManager;
 
 import java.util.*;
 
