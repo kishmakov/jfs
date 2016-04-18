@@ -37,8 +37,8 @@ Offset |Size     | Description
  12    | 4       | total number of blocks in file system
  16    | 4       | total number of unallocated inodes
  20    | 4       | total number of unallocated blocks
- 24    | 4       | first unallocated inode
- 28    | 4       | first unallocated data block
+ 24    | 4       | first unallocated inode id
+ 28    | 4       | first unallocated data block id
 
 
 ### Inode Layout
@@ -47,26 +47,34 @@ Inode consists of 64 bytes.
 
 Offset |Size   | Description
 :-----:|:-----:|------------
-0      |1      | Inode object type: `0x00` — directory, `0x01` — file
-1      |3      | Pointer to parent inode (up to 16M inodes)
-4      |4      | Inode object size
-8      |4      | Pointer to data block #0
-12     |4      | Pointer to data block #1
-16     |4      | Pointer to data block #2
-20     |4      | Pointer to data block #3
-24     |4      | Pointer to data block #4
-28     |4      | Pointer to data block #5
-32     |4      | Pointer to data block #6
-36     |4      | Pointer to data block #7
-40     |4      | Pointer to data block #8
-44     |4      | Pointer to data block #9
-48     |4      | Pointer to data block #10
-52     |4      | Pointer to data block #11
+0      |1      | inode object type: `0x00` — directory, `0x01` — file
+1      |3      | parent inode id (up to 16M inodes)
+4      |4      | corresponding object size
+8      |4      | id of data block #0
+12     |4      | id of data block #1
+16     |4      | id of data block #2
+20     |4      | id of data block #3
+24     |4      | id of data block #4
+28     |4      | id of data block #5
+32     |4      | id of data block #6
+36     |4      | id of data block #7
+40     |4      | id of data block #8
+44     |4      | id of data block #9
+48     |4      | id of data block #10
+52     |4      | id of data block #11
 56     |4      | Singly indirect pointer
 60     |4      | Doubly indirect pointer
 
-### Directory Layout
+### Directory Entry Layout
 
-Directories are supposed to be a specifc files, holding linked lists of pairs
+Directories are supposed to be a specific files, holding linked lists of pairs
 `(inode number, name)`. Implementation is motivated by [ext2 directory organisation](http://www.nongnu.org/ext2-doc/ext2.html#DIRECTORY).
+
+Offset |Size   | Description
+:-----:|:-----:|------------
+0      |4      | inode id
+4      |2      | total size of this entity
+6      |1      | name length, `L`
+7      |`L`    | name characters
+
 

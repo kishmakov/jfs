@@ -1,17 +1,14 @@
 package org.kshmakov.jfs.io;
 
+import org.kshmakov.jfs.io.primitives.AllocatedInode;
 import org.kshmakov.jfs.io.primitives.Header;
 import org.kshmakov.jfs.io.primitives.Inode;
+import org.kshmakov.jfs.io.primitives.VacantInode;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public final class FileManager {
-
-    private enum INODE_TYPE {
-        DIRECTORY,
-        FILE
-    }
 
     private static int numberOfInodes(long size) {
         assert size >= Parameters.MIN_SIZE && size <= Parameters.MAX_SIZE;
@@ -48,17 +45,21 @@ public final class FileManager {
         accessor.writeBuffer(header.toBuffer());
 
         for (int inodeId = 0; inodeId < header.inodesTotal; inodeId++) {
-            Inode inode = new Inode(inodeId == 0 ? Inode.ALLOCATED : Inode.UNALLOCATED);
 
             if (inodeId > 0) {
+                VacantInode inode = new VacantInode();
                 inode.nextId = (inodeId + 2) % (header.inodesTotal + 1);
+                accessor.writeBuffer(inode.toBuffer());
             } else {
-                inode.type = Inode.Type.DIRECTORY;
+                AllocatedInode inode = new AllocatedInode();
+                inode.type = AllocatedInode.Type.DIRECTORY;
                 inode.parentId = 1;
+                inode.objectSize = Header.DATA_BLOCK_SIZE;
                 inode.directPointers[0] = 1;
+                accessor.writeBuffer(inode.toBuffer());
             }
 
-            accessor.writeBuffer(inode.toBuffer());
+
         }
 
         for (int blockId = 0; blockId < header.blocksTotal; blockId++) {
