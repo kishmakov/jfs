@@ -1,8 +1,8 @@
 package org.kshmakov.jfs.io;
 
 import org.kshmakov.jfs.io.primitives.AllocatedInode;
+import org.kshmakov.jfs.io.primitives.DirectoryEntry;
 import org.kshmakov.jfs.io.primitives.Header;
-import org.kshmakov.jfs.io.primitives.Inode;
 import org.kshmakov.jfs.io.primitives.VacantInode;
 
 import java.io.IOException;
@@ -23,7 +23,7 @@ public final class FileManager {
         return (int) (sizeLeft / blockSize);
     }
 
-    private static Header defaultHeader(long fileSize) {
+    private static Header emptyFileHeader(long fileSize) {
         Header header = new Header();
 
         header.inodesTotal = numberOfInodes(fileSize);
@@ -41,14 +41,13 @@ public final class FileManager {
     public static void formatFile(String fileName) throws IOException {
         FileAccessor accessor = new FileAccessor(fileName);
 
-        Header header = defaultHeader(accessor.fileSize);
+        Header header = emptyFileHeader(accessor.fileSize);
         accessor.writeBuffer(header.toBuffer());
 
         for (int inodeId = 0; inodeId < header.inodesTotal; inodeId++) {
 
             if (inodeId > 0) {
-                VacantInode inode = new VacantInode();
-                inode.nextId = (inodeId + 2) % (header.inodesTotal + 1);
+                VacantInode inode = new VacantInode((inodeId + 2) % (header.inodesTotal + 1));
                 accessor.writeBuffer(inode.toBuffer());
             } else {
                 AllocatedInode inode = new AllocatedInode();
@@ -67,7 +66,13 @@ public final class FileManager {
             if (blockId > 0) {
                 block.putInt((blockId + 2) % (header.blocksTotal + 1));
             } else {
-                // TODO: empty directory layout
+                ByteBuffer dirBuffers[] = new ByteBuffer[2];
+                block.position(2);
+                block.put((new DirectoryEntry(1, ".")).toBuffer());
+                block.put((new DirectoryEntry(1, "..")).toBuffer());
+                char unusedSize = (char) (Header.DATA_BLOCK_SIZE - block.position());
+                block.position(0);
+                block.putChar(unusedSize);
             }
 
             accessor.writeBuffer(block);

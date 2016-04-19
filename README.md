@@ -7,13 +7,14 @@ EAFP vs LBYL
 
 ### Principles
 
-* Big-endian order is used
-* All sizes are denominated in bytes
-* Data block size could vary in diapason 256B(?) — 16KB, must be multiple of 4
+* utf-8 is used for names
+* big-endian order is used
+* all sizes are denominated in bytes
+* data block size could vary in diapason 256B(?) — 16KB, must be multiple of 4
   bytes
-* Numerations for inodes and data blocks start from 1; number 0 is meant to be NIL
-* Inodes tree starts from the inode number 1
-* Unallocated inodes and data blocks are linked into lists; pointers to the heads
+* numerations for inodes and data blocks start from 1; number 0 is meant to be NIL
+* inodes tree starts from the inode number 1
+* unallocated inodes and data blocks are linked into lists; pointers to the heads
   of these lists are stored in the header section
 
 ### File Partition Overview
@@ -65,16 +66,36 @@ Offset |Size   | Description
 56     |4      | Singly indirect pointer
 60     |4      | Doubly indirect pointer
 
-### Directory Entry Layout
+### Directory Organisation
 
 Directories are supposed to be a specific files, holding linked lists of pairs
-`(inode number, name)`. Implementation is motivated by [ext2 directory organisation](http://www.nongnu.org/ext2-doc/ext2.html#DIRECTORY).
+`{inode number, myName}`. Implementation is motivated by [ext2 directory organisation](http://www.nongnu.org/ext2-doc/ext2.html#DIRECTORY).
+
+In contrast with ext2 organization, we don't store per entry size. This is
+motivated by the decision to rewrite each block fully after modification.
+
+Each directory block starts with 2 byte describing unused space at the end of
+this block followed by directory entries.
+
+#### Directory Block Layout
+
+If we denote block size with `BS`, then
+
+Offset          |Size          | Description
+:--------------:|:------------:|------------
+0               |2             | block unused size, `BU`
+2               |S<sub>1</sub> | first entry
+2+S<sub>1</sub> |S<sub>2</sub> | second entry
+...             |...           | ...
+`BS - BU`       |`BU`          | unused space
+
+
+#### Directory Entry Layout
 
 Offset |Size   | Description
 :-----:|:-----:|------------
 0      |4      | inode id
-4      |2      | total size of this entity
-6      |1      | name length, `L`
-7      |`L`    | name characters
+4      |1      | myName length, `L`
+5      |`L`    | myName characters
 
 

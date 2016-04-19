@@ -4,7 +4,11 @@ import java.nio.ByteBuffer;
 
 public class VacantInode extends Inode {
 
-    public int nextId;
+    public final int nextId;
+
+    public VacantInode(int nextId) {
+        this.nextId = nextId;
+    }
 
     @Override
     protected void serializeTo(ByteBuffer buffer) {

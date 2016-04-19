@@ -9,6 +9,7 @@ public abstract class Inode {
     public ByteBuffer toBuffer() {
         ByteBuffer buffer = FileAccessor.newBuffer(Parameters.INODE_SIZE);
         serializeTo(buffer);
+        buffer.rewind();
         return buffer;
     }
 
