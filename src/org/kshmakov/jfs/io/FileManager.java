@@ -42,7 +42,6 @@ public final class FileManager {
         accessor.writeBuffer(header.toBuffer());
 
         for (int inodeId = 0; inodeId < header.inodesTotal; inodeId++) {
-
             if (inodeId > 0) {
                 VacantInode inode = new VacantInode((inodeId + 2) % (header.inodesTotal + 1));
                 accessor.writeBuffer(inode.toBuffer());
@@ -54,8 +53,6 @@ public final class FileManager {
                 inode.directPointers[0] = 1;
                 accessor.writeBuffer(inode.toBuffer());
             }
-
-
         }
 
         for (int blockId = 0; blockId < header.blocksTotal; blockId++) {
@@ -76,7 +73,8 @@ public final class FileManager {
     }
 
     private static int inodeOffset(int inodeId) {
-        return Parameters.HEADER_SIZE + inodeId * Parameters.INODE_SIZE;
+        assert inodeId > 0;
+        return Parameters.HEADER_SIZE + (inodeId - 1) * Parameters.INODE_SIZE;
     }
 
     private FileAccessor myFileAccessor;
@@ -91,5 +89,9 @@ public final class FileManager {
 
         System.out.printf("inodes total = %d\n", header.inodesTotal);
         System.out.printf("blocks total = %d\n", header.blocksTotal);
+
+        ByteBuffer inodeBuffer = myFileAccessor.readBuffer(inodeOffset(1), Parameters.INODE_SIZE);
+        inodeBuffer.rewind();
+        AllocatedInode firstInode = new AllocatedInode(inodeBuffer);
     }
 }

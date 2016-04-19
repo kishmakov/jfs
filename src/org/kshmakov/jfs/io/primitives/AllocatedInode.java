@@ -27,6 +27,24 @@ public class AllocatedInode {
         directPointers = new int[DIRECT_POINTERS_NUMBER];
     }
 
+    public AllocatedInode(ByteBuffer buffer) {
+        assert buffer.position() + Parameters.INODE_SIZE <= buffer.capacity();
+        directPointers = new int[DIRECT_POINTERS_NUMBER];
+
+        byte typeByte = buffer.get();
+        type = typeByte == 0 ? Type.DIRECTORY : Type.FILE;
+        parentId = buffer.get();
+        parentId = (parentId << 16) + buffer.getShort();
+
+        objectSize = buffer.getInt();
+        buffer.asIntBuffer().get(directPointers);
+        buffer.position(buffer.position() + DIRECT_POINTERS_NUMBER * 4);
+        buffer.getInt(singlyIndirectPointer);
+        buffer.getInt(doublyIndirectPointer);
+
+        System.out.printf("parentId = %d\nobjectSize = %d\n", parentId, objectSize);
+    }
+
     public ByteBuffer toBuffer() {
         ByteBuffer buffer = FileAccessor.newBuffer(Parameters.INODE_SIZE);
         assert buffer.order() == ByteOrder.BIG_ENDIAN;

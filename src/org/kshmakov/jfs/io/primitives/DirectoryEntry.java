@@ -47,7 +47,6 @@ public class DirectoryEntry {
     }
 
     public DirectoryEntry(ByteBuffer buffer) throws UnsupportedEncodingException {
-        assert buffer.position() + Parameters.INODE_SIZE <= buffer.capacity();
         inodeId = buffer.getInt();
         myNameBytes = new byte[buffer.get()];
         buffer.get(myNameBytes, 0, myNameBytes.length);
