@@ -1,9 +1,12 @@
 package org.kshmakov.jfs.io.primitives;
 
+import org.kshmakov.jfs.io.FileAccessor;
+import org.kshmakov.jfs.io.Parameters;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-public class AllocatedInode extends Inode {
+public class AllocatedInode {
 
     public enum Type {
         DIRECTORY,
@@ -24,8 +27,8 @@ public class AllocatedInode extends Inode {
         directPointers = new int[DIRECT_POINTERS_NUMBER];
     }
 
-    @Override
-    protected void serializeTo(ByteBuffer buffer) {
+    public ByteBuffer toBuffer() {
+        ByteBuffer buffer = FileAccessor.newBuffer(Parameters.INODE_SIZE);
         assert buffer.order() == ByteOrder.BIG_ENDIAN;
 
         buffer.put((byte) type.ordinal());
@@ -36,5 +39,8 @@ public class AllocatedInode extends Inode {
         buffer.position(buffer.position() + DIRECT_POINTERS_NUMBER * 4);
         buffer.putInt(singlyIndirectPointer);
         buffer.putInt(doublyIndirectPointer);
+
+        buffer.rewind();
+        return buffer;
     }
 }

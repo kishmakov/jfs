@@ -1,9 +1,6 @@
 package org.kshmakov.jfs.io;
 
-import org.kshmakov.jfs.io.primitives.AllocatedInode;
-import org.kshmakov.jfs.io.primitives.DirectoryEntry;
-import org.kshmakov.jfs.io.primitives.Header;
-import org.kshmakov.jfs.io.primitives.VacantInode;
+import org.kshmakov.jfs.io.primitives.*;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -62,24 +59,29 @@ public final class FileManager {
         }
 
         for (int blockId = 0; blockId < header.blocksTotal; blockId++) {
-            ByteBuffer block = FileAccessor.newBuffer(Header.DATA_BLOCK_SIZE);
             if (blockId > 0) {
-                block.putInt((blockId + 2) % (header.blocksTotal + 1));
+                VacantBlock block = new VacantBlock(Header.DATA_BLOCK_SIZE, (blockId + 2) % (header.blocksTotal + 1));
+                accessor.writeBuffer(block.toBuffer());
             } else {
-                ByteBuffer dirBuffers[] = new ByteBuffer[2];
+                ByteBuffer block = FileAccessor.newBuffer(Header.DATA_BLOCK_SIZE);
                 block.position(2);
                 block.put((new DirectoryEntry(1, ".")).toBuffer());
                 block.put((new DirectoryEntry(1, "..")).toBuffer());
                 char unusedSize = (char) (Header.DATA_BLOCK_SIZE - block.position());
                 block.position(0);
                 block.putChar(unusedSize);
+                accessor.writeBuffer(block);
             }
-
-            accessor.writeBuffer(block);
         }
     }
 
+    private static int inodeOffset(int inodeId) {
+        return Parameters.HEADER_SIZE + inodeId * Parameters.INODE_SIZE;
+    }
+
     private FileAccessor myFileAccessor;
+
+    private int currentInodeId;
 
     public FileManager(String name) throws IOException {
         myFileAccessor = new FileAccessor(name);

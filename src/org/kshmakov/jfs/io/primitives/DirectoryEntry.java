@@ -1,6 +1,7 @@
 package org.kshmakov.jfs.io.primitives;
 
 import org.kshmakov.jfs.io.FileAccessor;
+import org.kshmakov.jfs.io.Parameters;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -13,40 +14,52 @@ public class DirectoryEntry {
     public final static char SEPARATOR = '/';
     public final static int MAX_NAME_SIZE = 255;
 
-    public int inodeId;
-
-    private String myName;
-    private byte[] myNameBytes;
-
-    public DirectoryEntry(int inodeId, String name) throws IOException {
-        this.inodeId = inodeId;
-        setName(name);
-    }
-
-    public void setName(String name) throws IOException {
+    public static String checkName(String name) throws IOException {
         if (name.isEmpty()) {
-            throw new IOException("directory name could not be empty");
+            return "entry name must not be empty";
         }
 
         if (name.indexOf(SEPARATOR) != -1) {
-            throw new IOException("invalid name: contains separator character");
+            return "entry name must not contain separator character";
         }
 
-        try {
-            myNameBytes = name.getBytes(CHARSET);
-        } catch (UnsupportedEncodingException e) {
-            throw new IOException("could not handle " + CHARSET);
+        if (name.getBytes(CHARSET).length > MAX_NAME_SIZE) {
+            return "entry name length limit exceeded";
         }
 
-        if (myNameBytes.length > MAX_NAME_SIZE) {
-            throw new IOException("directory name length limit exceeded");
+        return "";
+    }
+
+    public final int inodeId;
+    public final String myName;
+
+    private final byte[] myNameBytes;
+
+    public DirectoryEntry(int inodeId, String name) throws IOException {
+        this.inodeId = inodeId;
+        String checkResult = checkName(name);
+        if (!checkResult.isEmpty()) {
+            throw new IOException(checkResult);
         }
 
-        this.myName = name;
+        myName = name;
+        myNameBytes = name.getBytes(CHARSET);
+    }
+
+    public DirectoryEntry(ByteBuffer buffer) throws UnsupportedEncodingException {
+        assert buffer.position() + Parameters.INODE_SIZE <= buffer.capacity();
+        inodeId = buffer.getInt();
+        myNameBytes = new byte[buffer.get()];
+        buffer.get(myNameBytes, 0, myNameBytes.length);
+        myName = new String(myNameBytes, CHARSET);
+    }
+
+    public int size() {
+        return ENTRY_HEADER_SIZE + myNameBytes.length;
     }
 
     public ByteBuffer toBuffer() {
-        ByteBuffer buffer = FileAccessor.newBuffer(ENTRY_HEADER_SIZE + myName.length());
+        ByteBuffer buffer = FileAccessor.newBuffer(size());
 
         buffer.putInt(inodeId);
         buffer.put((byte) myNameBytes.length);

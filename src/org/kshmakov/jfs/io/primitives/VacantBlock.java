@@ -1,21 +1,21 @@
 package org.kshmakov.jfs.io.primitives;
 
 import org.kshmakov.jfs.io.FileAccessor;
-import org.kshmakov.jfs.io.Parameters;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-public class VacantInode {
-
+public class VacantBlock {
     public final int nextId;
+    private final int size;
 
-    public VacantInode(int nextId) {
+    public VacantBlock(int size, int nextId) {
+        this.size = size;
         this.nextId = nextId;
     }
 
     public ByteBuffer toBuffer() {
-        ByteBuffer buffer = FileAccessor.newBuffer(Parameters.INODE_SIZE);
+        ByteBuffer buffer = FileAccessor.newBuffer(size);
         assert buffer.order() == ByteOrder.BIG_ENDIAN;
 
         buffer.putInt(nextId);
