@@ -36,7 +36,11 @@ public final class FileManager {
     }
 
     public AllocatedInode rootInode() throws IOException {
-        return new AllocatedInode(inodeBuffer(Parameters.ROOT_INODE_ID));
+        return inode(Parameters.ROOT_INODE_ID);
+    }
+
+    public AllocatedInode inode(int inodeId) throws IOException {
+        return new AllocatedInode(inodeBuffer(inodeId));
     }
 
     public Directory directory(AllocatedInode inode) throws IOException {
@@ -51,7 +55,7 @@ public final class FileManager {
             DirectoryBlock block = new DirectoryBlock(buffer);
 
             for (DirectoryEntry entry: block.entries) {
-                directory.entries.put(entry.myName, Directory.description(entry.type));
+                directory.entries.put(entry.myName, Directory.description(entry.type, entry.inodeId));
             }
         }
 

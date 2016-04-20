@@ -5,25 +5,73 @@ import org.kshmakov.jfs.io.FileManager;
 import org.kshmakov.jfs.io.Formatter;
 import org.kshmakov.jfs.io.Parameters;
 import org.kshmakov.jfs.io.primitives.AllocatedInode;
+import org.kshmakov.jfs.io.primitives.DirectoryEntry;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Map;
 
 public class Console {
 
     private FileManager myManager = null;
 
     private String myCurrentFile = "";
-    private String myCurrentPath = "";
+
+    private ArrayList<String> myCurrentPath = new ArrayList<String>();
 
     private AllocatedInode myCurrentDirInode;
 
     public String prefix() {
-        return myCurrentFile + myCurrentPath + "> ";
+        StringBuilder builder = new StringBuilder();
+        builder.append(myCurrentFile);
+        builder.append(Parameters.SEPARATOR);
+
+        boolean firstItem = true;
+        for (String pathItem : myCurrentPath) {
+            if (!firstItem)
+                builder.append(Parameters.SEPARATOR);
+
+            firstItem = false;
+            builder.append(pathItem);
+        }
+
+        return builder.append("> ").toString();
+    }
+
+    private String changeDirectory(String command[]) {
+        String usage = "usage: cd dir_name";
+
+        if (command.length < 2) {
+            return "directory name is not provided, " + usage;
+        }
+
+        try {
+            Directory directory = myManager.directory(myCurrentDirInode);
+
+            if (!directory.entries.containsKey(command[1])) {
+                return "no such file or directory";
+            }
+
+            int newInodeId = directory.entries.get(command[1]).inodeId;
+            myCurrentDirInode = myManager.inode(newInodeId);
+            switch (command[1]) {
+                case ".":
+                    break;
+                case "..":
+                    if (myCurrentPath.size() > 0) {
+                        myCurrentPath.remove(myCurrentPath.size() - 1);
+                    }
+                    break;
+                default:
+                    myCurrentPath.add(command[1]);
+            }
+        } catch (IOException e) {
+            return "could not change directory, reason: " + e.getMessage();
+        }
+
+        return "";
     }
 
     private String crateFile(String command[]) {
@@ -116,7 +164,7 @@ public class Console {
         try {
             myManager = new FileManager(command[1]);
             myCurrentDirInode = myManager.rootInode();
-            myCurrentPath = "/";
+            myCurrentPath = new ArrayList<String>();
             myCurrentFile = "@" + command[1] + ":";
         } catch (FileNotFoundException e) {
             System.err.println("file not found");
@@ -129,7 +177,7 @@ public class Console {
 
     private String umountFile() {
         myCurrentFile = "";
-        myCurrentPath = "";
+        myCurrentPath = new ArrayList<String>();
         myManager = null;
 
         return "";
@@ -139,6 +187,7 @@ public class Console {
         assert command.length > 0;
 
         switch (command[0]) {
+            case "cd"    : return changeDirectory(command);
             case "create": return crateFile(command);
             case "format": return formatFile(command);
             case "ls"    : return listDirectory();
