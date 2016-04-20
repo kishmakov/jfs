@@ -1,12 +1,17 @@
 package org.kshmakov.jfs;
 
+import org.kshmakov.jfs.io.Directory;
 import org.kshmakov.jfs.io.FileManager;
 import org.kshmakov.jfs.io.Formatter;
 import org.kshmakov.jfs.io.Parameters;
+import org.kshmakov.jfs.io.primitives.AllocatedInode;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Map;
 
 public class Console {
 
@@ -14,6 +19,8 @@ public class Console {
 
     private String myCurrentFile = "";
     private String myCurrentPath = "";
+
+    private AllocatedInode myCurrentDirInode;
 
     public String prefix() {
         return myCurrentFile + myCurrentPath + "> ";
@@ -77,7 +84,26 @@ public class Console {
         if (myManager == null)
             return "file system is not mounted";
 
-        return "";
+        try {
+            Directory directory = myManager.directory(myCurrentDirInode);
+
+            ArrayList<String> listItems = new ArrayList<String>(directory.entries.size());
+
+            directory.entries.forEach((key, value) -> listItems.add((value.isDirectory ? "d: " : "f: ") + key));
+
+            Collections.sort(listItems);
+
+            StringBuilder builder = new StringBuilder();
+            for (String item : listItems) {
+                if (builder.length() > 0)
+                    builder.append("\n");
+                builder.append(item);
+            }
+
+            return builder.toString();
+        } catch (IOException e) {
+            return "could not list directory, reason: " + e.getMessage();
+        }
     }
 
     private String mountFile(String command[]) {
@@ -89,8 +115,9 @@ public class Console {
 
         try {
             myManager = new FileManager(command[1]);
-            myCurrentFile = "@" + command[1] + ":";
+            myCurrentDirInode = myManager.rootInode();
             myCurrentPath = "/";
+            myCurrentFile = "@" + command[1] + ":";
         } catch (FileNotFoundException e) {
             System.err.println("file not found");
         } catch (IOException e) {

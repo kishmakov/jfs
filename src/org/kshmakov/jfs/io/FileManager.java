@@ -11,10 +11,15 @@ public final class FileManager {
         return Parameters.HEADER_SIZE + (inodeId - 1) * Parameters.INODE_SIZE;
     }
 
-    private FileAccessor myFileAccessor;
+    private int blockOffset(int blockId) {
+        assert blockId > 0;
+        return Parameters.HEADER_SIZE
+                + myHeader.inodesTotal * Parameters.INODE_SIZE
+                + (blockId - 1) * Header.DATA_BLOCK_SIZE;
+    }
 
-    private int myCurrentInodeId;
-    private AllocatedInode myCurrentInode;
+    private FileAccessor myFileAccessor;
+    private Header myHeader;
 
     private ByteBuffer inodeBuffer(int inodeId) throws IOException {
         int offset = inodeOffset(inodeId);
@@ -23,18 +28,46 @@ public final class FileManager {
         return buffer;
     }
 
+    private ByteBuffer blockBuffer(int blockId) throws IOException {
+        int offset = blockOffset(blockId);
+        ByteBuffer buffer = myFileAccessor.readBuffer(offset, Header.DATA_BLOCK_SIZE);
+        buffer.rewind();
+        return buffer;
+    }
+
+    public AllocatedInode rootInode() throws IOException {
+        return new AllocatedInode(inodeBuffer(Parameters.ROOT_INODE_ID));
+    }
+
+    public Directory directory(AllocatedInode inode) throws IOException {
+        assert inode.type == AllocatedInode.Type.DIRECTORY;
+        Directory directory = new Directory();
+
+        for (int blockId: inode.directPointers) {
+            if (blockId == 0)
+                continue;
+
+            ByteBuffer buffer = blockBuffer(blockId);
+            DirectoryBlock block = new DirectoryBlock(buffer);
+
+            for (DirectoryEntry entry: block.entries) {
+                directory.entries.put(entry.myName, Directory.description(entry.type));
+            }
+        }
+
+        // TODO: indirect blocks
+
+        return directory;
+    }
+
     public FileManager(String name) throws IOException {
         myFileAccessor = new FileAccessor(name);
 
         ByteBuffer headerBuffer = myFileAccessor.readBuffer(0, Parameters.HEADER_SIZE);
-        Header header = new Header(headerBuffer);
+        myHeader = new Header(headerBuffer);
 
-        System.out.printf("inodes total = %d\n", header.inodesTotal);
-        System.out.printf("blocks total = %d\n", header.blocksTotal);
+        System.out.printf("inodes total = %d\n", myHeader.inodesTotal);
+        System.out.printf("blocks total = %d\n", myHeader.blocksTotal);
 
-        myCurrentInodeId = Parameters.ROOT_INODE_ID;
-        myCurrentInode = new AllocatedInode(inodeBuffer(myCurrentInodeId));
-
-        System.out.printf("In first inode: blockId = %d\n", myCurrentInode.directPointers[0]);
     }
 }
