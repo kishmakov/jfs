@@ -13,6 +13,14 @@ public class AllocatedInode {
         FILE
     }
 
+    public static byte typeToByte(Type type) {
+        return (byte) type.ordinal();
+    }
+
+    public static Type byteToType(byte typeByte) {
+        return typeByte == 0 ? Type.DIRECTORY : Type.FILE;
+    }
+
     public Type type;
     public int parentId;
     public int objectSize;
@@ -31,8 +39,7 @@ public class AllocatedInode {
         assert buffer.position() + Parameters.INODE_SIZE <= buffer.capacity();
         directPointers = new int[DIRECT_POINTERS_NUMBER];
 
-        byte typeByte = buffer.get();
-        type = typeByte == 0 ? Type.DIRECTORY : Type.FILE;
+        type = byteToType(buffer.get());
         parentId = buffer.get();
         parentId = (parentId << 16) + buffer.getShort();
 

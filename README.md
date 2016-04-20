@@ -95,7 +95,8 @@ Offset          |Size          | Description
 Offset |Size   | Description
 :-----:|:-----:|------------
 0      |4      | inode id
-4      |1      | myName length, `L`
-5      |`L`    | myName characters
+4      |1      | entry type: `0x00` — directory, `0x01` — file
+5      |1      | myName length, `L`
+6      |`L`    | myName characters
 
 

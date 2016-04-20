@@ -60,14 +60,10 @@ public final class FileManager {
                 VacantBlock block = new VacantBlock(Header.DATA_BLOCK_SIZE, (blockId + 2) % (header.blocksTotal + 1));
                 accessor.writeBuffer(block.toBuffer());
             } else {
-                ByteBuffer block = FileAccessor.newBuffer(Header.DATA_BLOCK_SIZE);
-                block.position(2);
-                block.put((new DirectoryEntry(1, ".")).toBuffer());
-                block.put((new DirectoryEntry(1, "..")).toBuffer());
-                char unusedSize = (char) (Header.DATA_BLOCK_SIZE - block.position());
-                block.position(0);
-                block.putChar(unusedSize);
-                accessor.writeBuffer(block);
+                DirectoryBlock block = new DirectoryBlock(Header.DATA_BLOCK_SIZE);
+                block.tryInsert(new DirectoryEntry(1, AllocatedInode.Type.DIRECTORY, "."));
+                block.tryInsert(new DirectoryEntry(1, AllocatedInode.Type.DIRECTORY, ".."));
+                accessor.writeBuffer(block.toBuffer());
             }
         }
     }
