@@ -1,7 +1,5 @@
 package org.kshmakov.jfs;
 
-import org.kshmakov.jfs.io.ConsoleManager;
-
 import java.util.*;
 
 //// begin
@@ -37,11 +35,11 @@ import java.util.*;
 public class Main {
 
     public static void main(String[] args) {
-        ConsoleManager consoleManager = new ConsoleManager();
+        Console console = new Console();
         Scanner input = new Scanner(System.in);
 
         while (true) {
-            System.out.print(consoleManager.prefix());
+            System.out.print(console.prefix());
             String[] tokens = input.nextLine().trim().split(" ");
 
             if (tokens.length == 0)
@@ -50,7 +48,7 @@ public class Main {
             if (tokens[0].equals("exit"))
                 break;
 
-            String result = consoleManager.execute(tokens);
+            String result = console.execute(tokens);
 
             if (result.length() > 0)
                 System.out.println(result);

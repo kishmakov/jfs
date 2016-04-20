@@ -1,10 +1,14 @@
-package org.kshmakov.jfs.io;
+package org.kshmakov.jfs;
+
+import org.kshmakov.jfs.io.FileManager;
+import org.kshmakov.jfs.io.Formatter;
+import org.kshmakov.jfs.io.Parameters;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
-public class ConsoleManager {
+public class Console {
 
     private FileManager myManager = null;
 
@@ -61,12 +65,19 @@ public class ConsoleManager {
         }
 
         try {
-            FileManager.formatFile(command[1]);
+            Formatter.formatFile(command[1]);
         } catch (IOException e) {
             return "could not format file, reason: " + e.getMessage();
         }
 
         return "done";
+    }
+
+    private String listDirectory() {
+        if (myManager == null)
+            return "file system is not mounted";
+
+        return "";
     }
 
     private String mountFile(String command[]) {
@@ -103,8 +114,9 @@ public class ConsoleManager {
         switch (command[0]) {
             case "create": return crateFile(command);
             case "format": return formatFile(command);
-            case "mount": return mountFile(command);
+            case "ls"    : return listDirectory();
             case "umount": return umountFile();
+            case "mount" : return mountFile(command);
         }
 
         return "unsupported command";

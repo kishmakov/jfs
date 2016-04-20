@@ -8,4 +8,6 @@ public interface Parameters {
     int INODE_SIZE = 64;
 
     int MAGIC_NUMBER = 0xAABBCCDD;
+
+    int ROOT_INODE_ID = 1;
 }
