@@ -5,8 +5,8 @@ import org.kshmakov.jfs.io.primitives.*;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public final class FileManager {
-    private FileAccessor myFileAccessor;
+public final class FileSystemManager {
+    private FileSystemAccessor myAccessor;
     private Header myHeader;
 
     private static int inodeOffset(int inodeId) {
@@ -23,7 +23,7 @@ public final class FileManager {
 
     private ByteBuffer inodeBuffer(int inodeId) throws IOException {
         int offset = inodeOffset(inodeId);
-        ByteBuffer buffer = myFileAccessor.readBuffer(offset, Parameters.INODE_SIZE);
+        ByteBuffer buffer = myAccessor.readBuffer(offset, Parameters.INODE_SIZE);
         buffer.rewind();
         return buffer;
     }
@@ -34,12 +34,12 @@ public final class FileManager {
 
     private ByteBuffer blockBuffer(int blockId) throws IOException {
         int offset = blockOffset(blockId);
-        ByteBuffer buffer = myFileAccessor.readBuffer(offset, Header.DATA_BLOCK_SIZE);
+        ByteBuffer buffer = myAccessor.readBuffer(offset, Header.DATA_BLOCK_SIZE);
         buffer.rewind();
         return buffer;
     }
 
-    public Descriptor rootInode() throws IOException {
+    public static Descriptor rootInode() {
         return new DirectoryDescriptor(Parameters.ROOT_INODE_ID, "");
     }
 
@@ -50,14 +50,14 @@ public final class FileManager {
 
         Directory directory = new Directory();
 
-        for (int blockId: inode.directPointers) {
+        for (int blockId : inode.directPointers) {
             if (blockId == 0)
                 continue;
 
             ByteBuffer buffer = blockBuffer(blockId);
             DirectoryBlock block = new DirectoryBlock(buffer);
 
-            for (DirectoryEntry entry: block.entries) {
+            for (DirectoryEntry entry : block.entries) {
                 if (entry.type == Parameters.EntryType.DIRECTORY) {
                     directory.entries.put(entry.name, new DirectoryDescriptor(entry.inodeId, entry.name));
                 } else {
@@ -71,10 +71,10 @@ public final class FileManager {
         return directory;
     }
 
-    public FileManager(String name) throws IOException {
-        myFileAccessor = new FileAccessor(name);
+    public FileSystemManager(String name) throws IOException {
+        myAccessor = new FileSystemAccessor(name);
 
-        ByteBuffer headerBuffer = myFileAccessor.readBuffer(0, Parameters.HEADER_SIZE);
+        ByteBuffer headerBuffer = myAccessor.readBuffer(0, Parameters.HEADER_SIZE);
         myHeader = new Header(headerBuffer);
 
         System.out.printf("inodes total = %d\n", myHeader.inodesTotal);

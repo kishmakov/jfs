@@ -1,6 +1,6 @@
 package org.kshmakov.jfs.io.primitives;
 
-import org.kshmakov.jfs.io.FileAccessor;
+import org.kshmakov.jfs.io.FileSystemAccessor;
 import org.kshmakov.jfs.io.Parameters;
 
 import java.io.IOException;
@@ -47,7 +47,7 @@ public class Header {
     }
 
     public ByteBuffer toBuffer() {
-        ByteBuffer buffer = FileAccessor.newBuffer(Parameters.HEADER_SIZE);
+        ByteBuffer buffer = FileSystemAccessor.newBuffer(Parameters.HEADER_SIZE);
 
         buffer.putInt(Parameters.MAGIC_NUMBER);
         buffer.putShort(FILE_SYSTEM_VERSION);

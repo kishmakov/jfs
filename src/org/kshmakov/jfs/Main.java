@@ -1,6 +1,6 @@
 package org.kshmakov.jfs;
 
-import java.util.*;
+import java.util.Scanner;
 
 //// begin
 //

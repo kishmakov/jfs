@@ -34,7 +34,7 @@ public class Formatter {
     }
 
     public static void formatFile(String fileName) throws IOException {
-        FileAccessor accessor = new FileAccessor(fileName);
+        FileSystemAccessor accessor = new FileSystemAccessor(fileName);
 
         Header header = emptyFileHeader(accessor.fileSize);
         accessor.writeBuffer(header.toBuffer());

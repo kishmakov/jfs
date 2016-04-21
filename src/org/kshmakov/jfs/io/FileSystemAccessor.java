@@ -11,7 +11,7 @@ import java.nio.channels.FileChannel;
 /**
  * Thread unsafe.
  */
-public class FileAccessor {
+public class FileSystemAccessor {
     private static boolean isFile(String name) {
         File file = new File(name);
         return file.exists() && !file.isDirectory();
@@ -22,7 +22,7 @@ public class FileAccessor {
 
     public final long fileSize;
 
-    public FileAccessor(String fileName) throws IOException {
+    public FileSystemAccessor(String fileName) throws IOException {
         if (!isFile(fileName)) {
             throw new FileNotFoundException();
         }

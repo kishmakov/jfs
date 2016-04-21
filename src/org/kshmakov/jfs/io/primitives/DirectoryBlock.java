@@ -1,6 +1,6 @@
 package org.kshmakov.jfs.io.primitives;
 
-import org.kshmakov.jfs.io.FileAccessor;
+import org.kshmakov.jfs.io.FileSystemAccessor;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -40,7 +40,7 @@ public class DirectoryBlock {
     }
 
     public ByteBuffer toBuffer() {
-        ByteBuffer buffer = FileAccessor.newBuffer(myTotalSize);
+        ByteBuffer buffer = FileSystemAccessor.newBuffer(myTotalSize);
         assert buffer.order() == ByteOrder.BIG_ENDIAN;
 
         buffer.putShort(myUnusedSize);

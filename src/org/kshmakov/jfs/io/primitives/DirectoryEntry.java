@@ -1,6 +1,6 @@
 package org.kshmakov.jfs.io.primitives;
 
-import org.kshmakov.jfs.io.FileAccessor;
+import org.kshmakov.jfs.io.FileSystemAccessor;
 import org.kshmakov.jfs.io.Parameters;
 
 import java.io.IOException;
@@ -60,7 +60,7 @@ public class DirectoryEntry {
     }
 
     public ByteBuffer toBuffer() {
-        ByteBuffer buffer = FileAccessor.newBuffer(size());
+        ByteBuffer buffer = FileSystemAccessor.newBuffer(size());
 
         buffer.putInt(inodeId);
         buffer.put(Parameters.typeToByte(type));

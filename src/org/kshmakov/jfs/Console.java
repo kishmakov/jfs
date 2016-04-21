@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 public class Console {
-    private FileManager myManager = null;
+    private FileSystemManager myManager = null;
     private String myCurrentFile = "";
     private ArrayList<String> myCurrentPath = new ArrayList<String>();
     private Descriptor myCurrentDir;
@@ -160,7 +160,7 @@ public class Console {
             umountFile();
 
         try {
-            myManager = new FileManager(command[1]);
+            myManager = new FileSystemManager(command[1]);
             myCurrentDir = myManager.rootInode();
             myCurrentPath = new ArrayList<String>();
             myCurrentFile = "@" + command[1] + ":";
