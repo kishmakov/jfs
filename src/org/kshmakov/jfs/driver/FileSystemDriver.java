@@ -2,7 +2,6 @@ package org.kshmakov.jfs.driver;
 
 import com.sun.istack.internal.NotNull;
 import net.jcip.annotations.GuardedBy;
-import net.jcip.annotations.NotThreadSafe;
 import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.io.*;
 import org.kshmakov.jfs.io.primitives.AllocatedInode;
@@ -23,6 +22,8 @@ import org.kshmakov.jfs.io.tools.NameHelper;
 public final class FileSystemDriver {
     private final FileSystemAccessor myAccessor;
     private final FileSystemLocator myLocator;
+    private final InodesStack myInodesStack;
+
     private final ReadWriteLock[] myInodeLocks = new ReadWriteLock[16];
 
     private ByteBuffer inodeBuffer(int inodeId) throws JFSException {
@@ -55,6 +56,16 @@ public final class FileSystemDriver {
 
         // TODO: indirect blocks
         return directory;
+    }
+
+    public FileSystemDriver(String name) throws FileNotFoundException, JFSException {
+        myAccessor = new FileSystemAccessor(name);
+        myLocator = new FileSystemLocator(myAccessor);
+        myInodesStack = new InodesStack(myAccessor, myLocator);
+
+        for (int i = 0; i < myInodeLocks.length; ++i) {
+            myInodeLocks[i] = new ReentrantReadWriteLock();
+        }
     }
 
     @NotNull
@@ -95,15 +106,6 @@ public final class FileSystemDriver {
         }
         finally {
             readLock.unlock();
-        }
-    }
-
-    public FileSystemDriver(String name) throws FileNotFoundException, JFSException {
-        myAccessor = new FileSystemAccessor(name);
-        myLocator = new FileSystemLocator(myAccessor);
-
-        for (int i = 0; i < myInodeLocks.length; ++i) {
-            myInodeLocks[i] = new ReentrantReadWriteLock();
         }
     }
 }

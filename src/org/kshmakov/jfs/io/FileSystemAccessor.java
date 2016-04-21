@@ -11,6 +11,7 @@ import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 
 import net.jcip.annotations.NotThreadSafe;
+import org.kshmakov.jfs.io.primitives.Header;
 
 @NotThreadSafe
 public class FileSystemAccessor {
@@ -67,6 +68,19 @@ public class FileSystemAccessor {
         }
     }
 
+    public int writeBuffer(ByteBuffer buffer, long position) throws JFSBadFileException {
+        try {
+            buffer.flip();
+            buffer.limit(buffer.capacity());
+            assert position + buffer.capacity() <= fileSize;
+            int result = myChannel.write(buffer, position);
+            assert result == buffer.capacity();
+            return result;
+        } catch (IOException e) {
+            throw new JFSBadFileException("could not write buffer to file: " + e.getMessage());
+        }
+    }
+
     public int writeBuffer(ByteBuffer buffer) throws JFSBadFileException {
         try {
             buffer.flip();
@@ -78,5 +92,10 @@ public class FileSystemAccessor {
         } catch (IOException e) {
             throw new JFSBadFileException("could not write buffer to file: " + e.getMessage());
         }
+    }
+
+    public Header header() throws JFSBadFileException {
+        ByteBuffer buffer = readBuffer(0, Parameters.HEADER_SIZE);
+        return new Header(buffer);
     }
 }
