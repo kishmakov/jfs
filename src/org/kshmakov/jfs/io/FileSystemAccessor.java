@@ -1,6 +1,5 @@
 package org.kshmakov.jfs.io;
 
-import org.kshmakov.jfs.JFSBadFileException;
 import org.kshmakov.jfs.JFSException;
 
 import java.io.File;

@@ -1,11 +1,9 @@
 package org.kshmakov.jfs.io;
 
-import org.kshmakov.jfs.JFSBadFileException;
 import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.io.primitives.*;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.locks.Lock;

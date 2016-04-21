@@ -1,10 +1,9 @@
 package org.kshmakov.jfs.io.primitives;
 
-import org.kshmakov.jfs.JFSBadFileException;
+import org.kshmakov.jfs.io.JFSBadFileException;
 import org.kshmakov.jfs.io.FileSystemAccessor;
 import org.kshmakov.jfs.io.Parameters;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class Header {
