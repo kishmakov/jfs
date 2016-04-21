@@ -10,7 +10,9 @@ public class Header {
     public static final short FILE_SYSTEM_VERSION = 0x0000;
     public static final short DATA_BLOCK_SIZE = 0x1000;
     public static final int TOTAL_UNALLOCATED_INODES_OFFSET = 16;
+    public static final int TOTAL_UNALLOCATED_BLOCKS_OFFSET = 20;
     public static final int FIRST_UNALLOCATED_INODE_ID_OFFSET = 24;
+    public static final int FIRST_UNALLOCATED_BLOCK_ID_OFFSET = 24;
 
     public int inodesTotal;
     public int blocksTotal;

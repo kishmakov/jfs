@@ -4,8 +4,6 @@ import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.io.FileSystemAccessor;
 import org.kshmakov.jfs.io.Parameters;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;

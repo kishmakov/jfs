@@ -4,8 +4,6 @@ import net.jcip.annotations.NotThreadSafe;
 import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.io.primitives.Header;
 
-import java.nio.ByteBuffer;
-
 @NotThreadSafe
 public class FileSystemLocator {
     private final int inodesTotal;
@@ -21,7 +19,7 @@ public class FileSystemLocator {
         System.out.printf("blocks total = %d\n", blocksTotal);
     }
 
-    public int inodeOffset(int inodeId) throws JFSException {
+    public long inodeOffset(int inodeId) throws JFSException {
 
         if (inodeId <= 0 || inodeId > inodesTotal) {
             String range = "[1; " + Integer.toString(inodesTotal) + "]";
@@ -31,7 +29,7 @@ public class FileSystemLocator {
         return Parameters.HEADER_SIZE + (inodeId - 1) * Parameters.INODE_SIZE;
     }
 
-    public int blockOffset(int blockId) throws JFSException {
+    public long blockOffset(int blockId) throws JFSException {
         if (blockId <= 0 || blockId > blocksTotal) {
             String range = "[1; " + Integer.toString(blocksTotal) + "]";
             throw new JFSException("blockId=" + Integer.toString(blockId) + " not in " + range);

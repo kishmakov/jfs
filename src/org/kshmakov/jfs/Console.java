@@ -5,7 +5,7 @@ import org.kshmakov.jfs.driver.DirectoryDescriptor;
 import org.kshmakov.jfs.driver.FileSystemDriver;
 import org.kshmakov.jfs.driver.JFSRefuseException;
 import org.kshmakov.jfs.io.*;
-import org.kshmakov.jfs.io.tools.NameHelper;
+import org.kshmakov.jfs.io.NameHelper;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

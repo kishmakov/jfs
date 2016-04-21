@@ -1,4 +1,4 @@
-package org.kshmakov.jfs.io.tools;
+package org.kshmakov.jfs.io;
 
 import org.kshmakov.jfs.JFSException;
 

@@ -40,5 +40,19 @@ public class InodesStack {
         return resultId;
     }
 
-    // TODO: push
+    public void push(int inodeId) throws JFSException {
+        ByteBuffer buffer = FileSystemAccessor.newBuffer(4);
+        buffer.putInt(myFirstUnallocatedId);
+        myAccessor.writeBuffer(buffer, myLocator.inodeOffset(inodeId));
+
+        myFirstUnallocatedId = inodeId;
+
+        buffer.rewind();
+        buffer.putInt(++myUnallocatedInodes);
+        myAccessor.writeBuffer(buffer, Header.TOTAL_UNALLOCATED_INODES_OFFSET);
+
+        buffer.rewind();
+        buffer.putInt(inodeId);
+        myAccessor.writeBuffer(buffer, Header.FIRST_UNALLOCATED_INODE_ID_OFFSET);
+    }
 }
