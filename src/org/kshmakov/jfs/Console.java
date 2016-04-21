@@ -1,5 +1,6 @@
 package org.kshmakov.jfs;
 
+import org.kshmakov.jfs.driver.DirectoryDescriptor;
 import org.kshmakov.jfs.driver.FileSystemDriver;
 import org.kshmakov.jfs.io.*;
 import org.kshmakov.jfs.io.tools.NameHelper;

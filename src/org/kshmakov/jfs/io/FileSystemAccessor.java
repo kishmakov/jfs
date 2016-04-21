@@ -10,9 +10,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 
-/**
- * Thread unsafe.
- */
+import net.jcip.annotations.NotThreadSafe;
+
+@NotThreadSafe
 public class FileSystemAccessor {
     private static boolean isFile(String name) {
         File file = new File(name);

@@ -1,5 +1,8 @@
 package org.kshmakov.jfs.io;
 
+import org.kshmakov.jfs.driver.DirectoryDescriptor;
+import org.kshmakov.jfs.driver.FileDescriptor;
+
 import java.util.HashMap;
 
 // TODO: complete

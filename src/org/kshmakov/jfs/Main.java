@@ -1,6 +1,5 @@
 package org.kshmakov.jfs;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Scanner;
 
 //// begin

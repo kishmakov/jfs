@@ -13,9 +13,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-/**
- * Thread safe (supposed to be).
- */
+import net.jcip.annotations.ThreadSafe;
+
+@ThreadSafe
 public final class FileSystemDriver {
     private final FileSystemAccessor myAccessor;
     private final FileSystemLocator myLocator;
@@ -43,16 +43,21 @@ public final class FileSystemDriver {
         return new DirectoryDescriptor(Parameters.ROOT_INODE_ID, "");
     }
 
-    public Directory directory(Descriptor descriptor) throws JFSException {
-        assert descriptor.getType() == Parameters.EntryType.DIRECTORY;
-
+    public Directory directory(DirectoryDescriptor descriptor) throws JFSException {
         Directory directory = new Directory();
 
-        Lock readLock = myInodeLocks[descriptor.getInodeId() % myInodeLocks.length].readLock();
+        AllocatedInode inode = null;
+
+        Lock readLock = myInodeLocks[descriptor.inodeId % myInodeLocks.length].readLock();
         readLock.lock();
 
-        try {
-            AllocatedInode inode = inode(descriptor.getInodeId());
+//        try {
+            inode = inode(descriptor.inodeId);
+//        }
+
+//        finally {
+//            readLock.unlock();
+//        }
 
             for (int blockId : inode.directPointers) {
                 if (blockId == 0)
@@ -69,10 +74,7 @@ public final class FileSystemDriver {
                     }
                 }
             }
-        }
-        finally {
-            readLock.unlock();
-        }
+
 
         // TODO: indirect blocks
 
