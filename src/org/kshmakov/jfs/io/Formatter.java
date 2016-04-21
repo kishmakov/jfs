@@ -45,7 +45,7 @@ public class Formatter {
                 accessor.writeBuffer(inode.toBuffer());
             } else {
                 AllocatedInode inode = new AllocatedInode();
-                inode.type = AllocatedInode.Type.DIRECTORY;
+                inode.type = Parameters.EntryType.DIRECTORY;
                 inode.parentId = 1;
                 inode.objectSize = Header.DATA_BLOCK_SIZE;
                 inode.directPointers[0] = 1;
@@ -59,8 +59,8 @@ public class Formatter {
                 accessor.writeBuffer(block.toBuffer());
             } else {
                 DirectoryBlock block = new DirectoryBlock(Header.DATA_BLOCK_SIZE);
-                block.tryInsert(new DirectoryEntry(1, AllocatedInode.Type.DIRECTORY, "."));
-                block.tryInsert(new DirectoryEntry(1, AllocatedInode.Type.DIRECTORY, ".."));
+                block.tryInsert(new DirectoryEntry(1, Parameters.EntryType.DIRECTORY, "."));
+                block.tryInsert(new DirectoryEntry(1, Parameters.EntryType.DIRECTORY, ".."));
                 accessor.writeBuffer(block.toBuffer());
             }
         }

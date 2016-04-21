@@ -30,12 +30,12 @@ public class DirectoryEntry {
     }
 
     public final int inodeId;
-    public final AllocatedInode.Type type;
-    public final String myName;
+    public final Parameters.EntryType type;
+    public final String name;
 
     private final byte[] myNameBytes;
 
-    public DirectoryEntry(int inodeId, AllocatedInode.Type type, String name) throws IOException {
+    public DirectoryEntry(int inodeId, Parameters.EntryType type, String name) throws IOException {
         this.inodeId = inodeId;
         this.type = type;
         String checkResult = checkName(name);
@@ -43,16 +43,16 @@ public class DirectoryEntry {
             throw new IOException(checkResult);
         }
 
-        myName = name;
+        this.name = name;
         myNameBytes = name.getBytes(CHARSET);
     }
 
     public DirectoryEntry(ByteBuffer buffer) throws UnsupportedEncodingException {
         inodeId = buffer.getInt();
-        type = AllocatedInode.byteToType(buffer.get());
+        type = Parameters.byteToType(buffer.get());
         myNameBytes = new byte[buffer.get()];
         buffer.get(myNameBytes, 0, myNameBytes.length);
-        myName = new String(myNameBytes, CHARSET);
+        name = new String(myNameBytes, CHARSET);
     }
 
     public short size() {
@@ -63,7 +63,7 @@ public class DirectoryEntry {
         ByteBuffer buffer = FileAccessor.newBuffer(size());
 
         buffer.putInt(inodeId);
-        buffer.put(AllocatedInode.typeToByte(type));
+        buffer.put(Parameters.typeToByte(type));
         buffer.put((byte) myNameBytes.length);
         buffer.put(myNameBytes);
         buffer.rewind();

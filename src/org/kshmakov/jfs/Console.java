@@ -1,11 +1,6 @@
 package org.kshmakov.jfs;
 
-import org.kshmakov.jfs.io.Directory;
-import org.kshmakov.jfs.io.FileManager;
-import org.kshmakov.jfs.io.Formatter;
-import org.kshmakov.jfs.io.Parameters;
-import org.kshmakov.jfs.io.primitives.AllocatedInode;
-import org.kshmakov.jfs.io.primitives.DirectoryEntry;
+import org.kshmakov.jfs.io.*;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -14,27 +9,25 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 public class Console {
-
     private FileManager myManager = null;
-
     private String myCurrentFile = "";
-
     private ArrayList<String> myCurrentPath = new ArrayList<String>();
-
-    private AllocatedInode myCurrentDirInode;
+    private Descriptor myCurrentDir;
 
     public String prefix() {
         StringBuilder builder = new StringBuilder();
-        builder.append(myCurrentFile);
-        builder.append(Parameters.SEPARATOR);
+        if (!myCurrentFile.isEmpty()) {
+            builder.append(myCurrentFile);
+            builder.append(Parameters.SEPARATOR);
 
-        boolean firstItem = true;
-        for (String pathItem : myCurrentPath) {
-            if (!firstItem)
-                builder.append(Parameters.SEPARATOR);
+            boolean firstItem = true;
+            for (String pathItem : myCurrentPath) {
+                if (!firstItem)
+                    builder.append(Parameters.SEPARATOR);
 
-            firstItem = false;
-            builder.append(pathItem);
+                firstItem = false;
+                builder.append(pathItem);
+            }
         }
 
         return builder.append("> ").toString();
@@ -48,14 +41,20 @@ public class Console {
         }
 
         try {
-            Directory directory = myManager.directory(myCurrentDirInode);
+            Directory directory = myManager.directory(myCurrentDir);
 
             if (!directory.entries.containsKey(command[1])) {
                 return "no such file or directory";
             }
 
-            int newInodeId = directory.entries.get(command[1]).inodeId;
-            myCurrentDirInode = myManager.inode(newInodeId);
+            Descriptor descriptor = directory.entries.get(command[1]);
+
+            if (descriptor.getType() != Parameters.EntryType.DIRECTORY) {
+                return command[1] + " is not a directory";
+            }
+
+            myCurrentDir = descriptor;
+
             switch (command[1]) {
                 case ".":
                     break;
@@ -133,11 +132,10 @@ public class Console {
             return "file system is not mounted";
 
         try {
-            Directory directory = myManager.directory(myCurrentDirInode);
-
+            Directory directory = myManager.directory(myCurrentDir);
             ArrayList<String> listItems = new ArrayList<String>(directory.entries.size());
 
-            directory.entries.forEach((key, value) -> listItems.add((value.isDirectory ? "d: " : "f: ") + key));
+            directory.entries.forEach((key, value) -> listItems.add((value.getType() == Parameters.EntryType.DIRECTORY ? "d: " : "f: ") + key));
 
             Collections.sort(listItems);
 
@@ -163,7 +161,7 @@ public class Console {
 
         try {
             myManager = new FileManager(command[1]);
-            myCurrentDirInode = myManager.rootInode();
+            myCurrentDir = myManager.rootInode();
             myCurrentPath = new ArrayList<String>();
             myCurrentFile = "@" + command[1] + ":";
         } catch (FileNotFoundException e) {

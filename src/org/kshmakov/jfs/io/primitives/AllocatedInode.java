@@ -8,38 +8,23 @@ import java.nio.ByteOrder;
 
 public class AllocatedInode {
 
-    public enum Type {
-        DIRECTORY,
-        FILE
-    }
-
-    public static byte typeToByte(Type type) {
-        return (byte) type.ordinal();
-    }
-
-    public static Type byteToType(byte typeByte) {
-        return typeByte == 0 ? Type.DIRECTORY : Type.FILE;
-    }
-
-    public Type type;
+    public Parameters.EntryType type;
     public int parentId;
     public int objectSize;
 
     public static final int DIRECT_POINTERS_NUMBER = 12;
 
-    public int directPointers[];
+    public int directPointers[] = new int[DIRECT_POINTERS_NUMBER];
     public int singlyIndirectPointer;
     public int doublyIndirectPointer;
 
     public AllocatedInode() {
-        directPointers = new int[DIRECT_POINTERS_NUMBER];
     }
 
     public AllocatedInode(ByteBuffer buffer) {
         assert buffer.position() + Parameters.INODE_SIZE <= buffer.capacity();
-        directPointers = new int[DIRECT_POINTERS_NUMBER];
 
-        type = byteToType(buffer.get());
+        type = Parameters.byteToType(buffer.get());
         parentId = buffer.get();
         parentId = (parentId << 16) + buffer.getShort();
 

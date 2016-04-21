@@ -6,6 +6,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public final class FileManager {
+    private FileAccessor myFileAccessor;
+    private Header myHeader;
+
     private static int inodeOffset(int inodeId) {
         assert inodeId > 0;
         return Parameters.HEADER_SIZE + (inodeId - 1) * Parameters.INODE_SIZE;
@@ -18,14 +21,15 @@ public final class FileManager {
                 + (blockId - 1) * Header.DATA_BLOCK_SIZE;
     }
 
-    private FileAccessor myFileAccessor;
-    private Header myHeader;
-
     private ByteBuffer inodeBuffer(int inodeId) throws IOException {
         int offset = inodeOffset(inodeId);
         ByteBuffer buffer = myFileAccessor.readBuffer(offset, Parameters.INODE_SIZE);
         buffer.rewind();
         return buffer;
+    }
+
+    private AllocatedInode inode(int inodeId) throws IOException {
+        return new AllocatedInode(inodeBuffer(inodeId));
     }
 
     private ByteBuffer blockBuffer(int blockId) throws IOException {
@@ -35,16 +39,15 @@ public final class FileManager {
         return buffer;
     }
 
-    public AllocatedInode rootInode() throws IOException {
-        return inode(Parameters.ROOT_INODE_ID);
+    public Descriptor rootInode() throws IOException {
+        return new DirectoryDescriptor(Parameters.ROOT_INODE_ID, "");
     }
 
-    public AllocatedInode inode(int inodeId) throws IOException {
-        return new AllocatedInode(inodeBuffer(inodeId));
-    }
+    public Directory directory(Descriptor descriptor) throws IOException {
+        assert descriptor.getType() == Parameters.EntryType.DIRECTORY;
 
-    public Directory directory(AllocatedInode inode) throws IOException {
-        assert inode.type == AllocatedInode.Type.DIRECTORY;
+        AllocatedInode inode = inode(descriptor.getInodeId());
+
         Directory directory = new Directory();
 
         for (int blockId: inode.directPointers) {
@@ -55,7 +58,11 @@ public final class FileManager {
             DirectoryBlock block = new DirectoryBlock(buffer);
 
             for (DirectoryEntry entry: block.entries) {
-                directory.entries.put(entry.myName, Directory.description(entry.type, entry.inodeId));
+                if (entry.type == Parameters.EntryType.DIRECTORY) {
+                    directory.entries.put(entry.name, new DirectoryDescriptor(entry.inodeId, entry.name));
+                } else {
+                    directory.entries.put(entry.name, new FileDescriptor(entry.inodeId, entry.name));
+                }
             }
         }
 

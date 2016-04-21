@@ -1,5 +1,8 @@
 package org.kshmakov.jfs.io;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 public interface Parameters {
     long MIN_SIZE = 239;
     long MAX_SIZE = 100500;
@@ -12,4 +15,17 @@ public interface Parameters {
     int ROOT_INODE_ID = 1;
 
     char SEPARATOR = '/';
+
+    enum EntryType {
+        DIRECTORY,
+        FILE
+    }
+
+    static byte typeToByte(EntryType type) {
+        return (byte) type.ordinal();
+    }
+
+    static EntryType byteToType(byte typeByte) {
+        return typeByte == 0 ? EntryType.DIRECTORY : EntryType.FILE;
+    }
 }

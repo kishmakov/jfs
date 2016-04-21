@@ -8,6 +8,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 
+/**
+ * Thread unsafe.
+ */
 public class FileAccessor {
     private static boolean isFile(String name) {
         File file = new File(name);
