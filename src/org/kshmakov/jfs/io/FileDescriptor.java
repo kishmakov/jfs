@@ -19,7 +19,7 @@ public class FileDescriptor implements Descriptor {
         return myName;
     }
 
-    FileDescriptor(int inodeId, String name) {
+    public FileDescriptor(int inodeId, String name) {
         myInodeId = inodeId;
         myName = name;
     }

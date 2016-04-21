@@ -19,8 +19,8 @@ public class FileSystemAccessor {
         return file.exists() && !file.isDirectory();
     }
 
-    private FileChannel myChannel;
-    private RandomAccessFile myFile;
+    private final FileChannel myChannel;
+    private final RandomAccessFile myFile;
 
     public final long fileSize;
 

@@ -1,34 +1,28 @@
-package org.kshmakov.jfs.io;
+package org.kshmakov.jfs.driver;
 
 import org.kshmakov.jfs.JFSException;
-import org.kshmakov.jfs.io.primitives.*;
+import org.kshmakov.jfs.io.*;
+import org.kshmakov.jfs.io.primitives.AllocatedInode;
+import org.kshmakov.jfs.io.primitives.DirectoryBlock;
+import org.kshmakov.jfs.io.primitives.DirectoryEntry;
+import org.kshmakov.jfs.io.primitives.Header;
 
 import java.io.FileNotFoundException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public final class FileSystemManager {
+/**
+ * Thread safe (supposed to be).
+ */
+public final class FileSystemDriver {
     private final FileSystemAccessor myAccessor;
-    private final Header myHeader;
+    private final FileSystemLocator myLocator;
     private final ReadWriteLock[] myInodeLocks = new ReadWriteLock[16];
 
-    private static int inodeOffset(int inodeId) {
-        assert inodeId > 0;
-        return Parameters.HEADER_SIZE + (inodeId - 1) * Parameters.INODE_SIZE;
-    }
-
-    private int blockOffset(int blockId) {
-        assert blockId > 0;
-        return Parameters.HEADER_SIZE
-                + myHeader.inodesTotal * Parameters.INODE_SIZE
-                + (blockId - 1) * Header.DATA_BLOCK_SIZE;
-    }
-
     private ByteBuffer inodeBuffer(int inodeId) throws JFSBadFileException {
-        int offset = inodeOffset(inodeId);
+        int offset = myLocator.inodeOffset(inodeId);
         ByteBuffer buffer = myAccessor.readBuffer(offset, Parameters.INODE_SIZE);
         buffer.rewind();
         return buffer;
@@ -39,13 +33,13 @@ public final class FileSystemManager {
     }
 
     private ByteBuffer blockBuffer(int blockId) throws JFSBadFileException {
-        int offset = blockOffset(blockId);
+        int offset = myLocator.blockOffset(blockId);
         ByteBuffer buffer = myAccessor.readBuffer(offset, Header.DATA_BLOCK_SIZE);
         buffer.rewind();
         return buffer;
     }
 
-    public static Descriptor rootInode() {
+    public static DirectoryDescriptor rootInode() {
         return new DirectoryDescriptor(Parameters.ROOT_INODE_ID, "");
     }
 
@@ -54,8 +48,8 @@ public final class FileSystemManager {
 
         Directory directory = new Directory();
 
-        Lock readlock = myInodeLocks[descriptor.getInodeId() % myInodeLocks.length].readLock();
-        readlock.lock();
+        Lock readLock = myInodeLocks[descriptor.getInodeId() % myInodeLocks.length].readLock();
+        readLock.lock();
 
         try {
             AllocatedInode inode = inode(descriptor.getInodeId());
@@ -69,14 +63,15 @@ public final class FileSystemManager {
 
                 for (DirectoryEntry entry : block.entries) {
                     if (entry.type == Parameters.EntryType.DIRECTORY) {
-                        directory.entries.put(entry.name, new DirectoryDescriptor(entry.inodeId, entry.name));
+                        directory.directories.put(entry.name, new DirectoryDescriptor(entry.inodeId, entry.name));
                     } else {
-                        directory.entries.put(entry.name, new FileDescriptor(entry.inodeId, entry.name));
+                        directory.files.put(entry.name, new FileDescriptor(entry.inodeId, entry.name));
                     }
                 }
             }
-        } finally {
-            readlock.unlock();
+        }
+        finally {
+            readLock.unlock();
         }
 
         // TODO: indirect blocks
@@ -84,18 +79,12 @@ public final class FileSystemManager {
         return directory;
     }
 
-    public FileSystemManager(String name) throws FileNotFoundException, JFSException {
+    public FileSystemDriver(String name) throws FileNotFoundException, JFSException {
         myAccessor = new FileSystemAccessor(name);
-
-        ByteBuffer headerBuffer = myAccessor.readBuffer(0, Parameters.HEADER_SIZE);
-        myHeader = new Header(headerBuffer);
+        myLocator = new FileSystemLocator(myAccessor);
 
         for (int i = 0; i < myInodeLocks.length; ++i) {
             myInodeLocks[i] = new ReentrantReadWriteLock();
         }
-
-//        System.out.printf("inodes total = %d\n", myHeader.inodesTotal);
-//        System.out.printf("blocks total = %d\n", myHeader.blocksTotal);
-
     }
 }

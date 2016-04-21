@@ -20,7 +20,7 @@ public class DirectoryDescriptor implements Descriptor {
         return myName;
     }
 
-    DirectoryDescriptor(int inodeId, String name) {
+    public DirectoryDescriptor(int inodeId, String name) {
         myInodeId = inodeId;
         myName = name;
     }

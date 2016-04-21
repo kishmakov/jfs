@@ -1,20 +1,20 @@
 package org.kshmakov.jfs;
 
+import org.kshmakov.jfs.driver.FileSystemDriver;
 import org.kshmakov.jfs.io.*;
 import org.kshmakov.jfs.io.tools.NameHelper;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 
 public class Console {
-    private FileSystemManager myManager = null;
+    private FileSystemDriver myDriver = null;
     private String myCurrentFile = "";
     private ArrayList<String> myCurrentPath = new ArrayList<String>();
-    private Descriptor myCurrentDir;
+    private DirectoryDescriptor myCurrentDir;
 
     public String prefix() {
         StringBuilder builder = new StringBuilder();
@@ -42,19 +42,13 @@ public class Console {
             return "directory name is not provided, " + usage;
         }
 
-        Directory directory = myManager.directory(myCurrentDir);
+        Directory directory = myDriver.directory(myCurrentDir);
 
-        if (!directory.entries.containsKey(command[1])) {
-            return "no such file or directory";
+        if (!directory.directories.containsKey(command[1])) {
+            return "no such directory";
         }
 
-        Descriptor descriptor = directory.entries.get(command[1]);
-
-        if (descriptor.getType() != Parameters.EntryType.DIRECTORY) {
-            return command[1] + " is not a directory";
-        }
-
-        myCurrentDir = descriptor;
+        myCurrentDir = directory.directories.get(command[1]);
 
         switch (command[1]) {
             case ".":
@@ -105,8 +99,7 @@ public class Console {
             return "could not create file, reason: " + e.getMessage();
         }
 
-        String formatResult = formatFile(command);
-        return formatResult.isEmpty() ? "done" : formatResult;
+        return command[1] + " created";
     }
 
     private String formatFile(String[] command) throws JFSException {
@@ -128,13 +121,14 @@ public class Console {
     }
 
     private String listDirectory() throws JFSException {
-        if (myManager == null)
+        if (myDriver == null)
             return "file system is not mounted";
 
-        Directory directory = myManager.directory(myCurrentDir);
-        ArrayList<String> listItems = new ArrayList<String>(directory.entries.size());
+        Directory directory = myDriver.directory(myCurrentDir);
+        ArrayList<String> listItems = new ArrayList<String>(directory.directories.size() + directory.files.size());
 
-        directory.entries.forEach((key, value) -> listItems.add((value.getType() == Parameters.EntryType.DIRECTORY ? "d: " : "f: ") + key));
+        directory.directories.forEach((key, value) -> listItems.add("d: " + key));
+        directory.files.forEach((key, value) -> listItems.add("f: " + key));
 
         Collections.sort(listItems);
 
@@ -156,12 +150,12 @@ public class Console {
         if (command.length < 2)
             return "file name is not provided";
 
-        if (myManager != null)
+        if (myDriver != null)
             umountFile();
 
         try {
-            myManager = new FileSystemManager(command[1]);
-            myCurrentDir = myManager.rootInode();
+            myDriver = new FileSystemDriver(command[1]);
+            myCurrentDir = myDriver.rootInode();
             myCurrentPath = new ArrayList<String>();
             myCurrentFile = "@" + command[1] + ":";
         } catch (FileNotFoundException e) {
@@ -176,7 +170,7 @@ public class Console {
     private String umountFile() {
         myCurrentFile = "";
         myCurrentPath = new ArrayList<String>();
-        myManager = null;
+        myDriver = null;
 
         return "";
     }
