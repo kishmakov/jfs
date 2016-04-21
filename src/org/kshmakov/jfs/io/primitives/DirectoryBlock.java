@@ -1,7 +1,10 @@
 package org.kshmakov.jfs.io.primitives;
 
+import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.io.FileSystemAccessor;
+import org.kshmakov.jfs.io.Parameters;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -14,6 +17,13 @@ public class DirectoryBlock {
     private short myUnusedSize;
 
     public final ArrayList<DirectoryEntry> entries = new ArrayList<DirectoryEntry>();
+
+    public static DirectoryBlock emptyDirectoryBlock() throws UnsupportedEncodingException, JFSException {
+        DirectoryBlock block = new DirectoryBlock(Header.DATA_BLOCK_SIZE);
+        block.tryInsert(new DirectoryEntry(1, Parameters.EntryType.DIRECTORY, "."));
+        block.tryInsert(new DirectoryEntry(1, Parameters.EntryType.DIRECTORY, ".."));
+        return block;
+    }
 
     public DirectoryBlock(short size) {
         myTotalSize = size;

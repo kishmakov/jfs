@@ -1,5 +1,6 @@
 package org.kshmakov.jfs;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Scanner;
 
 //// begin
@@ -34,7 +35,7 @@ import java.util.Scanner;
 
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnsupportedEncodingException, JFSException {
         Console console = new Console();
         Scanner input = new Scanner(System.in);
 

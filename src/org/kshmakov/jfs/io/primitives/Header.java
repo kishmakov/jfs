@@ -1,5 +1,6 @@
 package org.kshmakov.jfs.io.primitives;
 
+import org.kshmakov.jfs.JFSBadFileException;
 import org.kshmakov.jfs.io.FileSystemAccessor;
 import org.kshmakov.jfs.io.Parameters;
 
@@ -22,12 +23,12 @@ public class Header {
     public Header() {
     }
 
-    public Header(ByteBuffer buffer) throws IOException {
+    public Header(ByteBuffer buffer) throws JFSBadFileException {
         assert buffer.capacity() == Parameters.HEADER_SIZE;
         buffer.rewind();
 
         if (buffer.getInt() != Parameters.MAGIC_NUMBER) {
-            throw new IOException("provided file does not correspond to jfs format");
+            throw new JFSBadFileException("provided file does not correspond to jfs format");
         }
 
         short version = buffer.getShort();

@@ -5,6 +5,7 @@ import org.kshmakov.jfs.io.*;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -33,47 +34,43 @@ public class Console {
         return builder.append("> ").toString();
     }
 
-    private String changeDirectory(String command[]) {
+    private String changeDirectory(String command[]) throws UnsupportedEncodingException, JFSBadFileException {
         String usage = "usage: cd dir_name";
 
         if (command.length < 2) {
             return "directory name is not provided, " + usage;
         }
 
-        try {
-            Directory directory = myManager.directory(myCurrentDir);
+        Directory directory = myManager.directory(myCurrentDir);
 
-            if (!directory.entries.containsKey(command[1])) {
-                return "no such file or directory";
-            }
+        if (!directory.entries.containsKey(command[1])) {
+            return "no such file or directory";
+        }
 
-            Descriptor descriptor = directory.entries.get(command[1]);
+        Descriptor descriptor = directory.entries.get(command[1]);
 
-            if (descriptor.getType() != Parameters.EntryType.DIRECTORY) {
-                return command[1] + " is not a directory";
-            }
+        if (descriptor.getType() != Parameters.EntryType.DIRECTORY) {
+            return command[1] + " is not a directory";
+        }
 
-            myCurrentDir = descriptor;
+        myCurrentDir = descriptor;
 
-            switch (command[1]) {
-                case ".":
-                    break;
-                case "..":
-                    if (myCurrentPath.size() > 0) {
-                        myCurrentPath.remove(myCurrentPath.size() - 1);
-                    }
-                    break;
-                default:
-                    myCurrentPath.add(command[1]);
-            }
-        } catch (IOException e) {
-            return "could not change directory, reason: " + e.getMessage();
+        switch (command[1]) {
+            case ".":
+                break;
+            case "..":
+                if (myCurrentPath.size() > 0) {
+                    myCurrentPath.remove(myCurrentPath.size() - 1);
+                }
+                break;
+            default:
+                myCurrentPath.add(command[1]);
         }
 
         return "";
     }
 
-    private String crateFile(String command[]) {
+    private String crateFile(String command[]) throws UnsupportedEncodingException, JFSException {
         String usage = "usage: create file_name file_size";
 
         if (command.length < 2) {
@@ -111,7 +108,7 @@ public class Console {
         return formatResult.isEmpty() ? "done" : formatResult;
     }
 
-    private String formatFile(String command[]) {
+    private String formatFile(String command[]) throws UnsupportedEncodingException, JFSException {
         String usage = "usage: format file_name";
 
         if (command.length < 2) {
@@ -120,39 +117,37 @@ public class Console {
 
         try {
             Formatter.formatFile(command[1]);
-        } catch (IOException e) {
+        } catch (JFSBadFileException e) {
             return "could not format file, reason: " + e.getMessage();
+        } catch (FileNotFoundException e) {
+            return "file not found";
         }
 
-        return "done";
+        return command[1] + " formatted";
     }
 
-    private String listDirectory() {
+    private String listDirectory() throws JFSBadFileException, UnsupportedEncodingException {
         if (myManager == null)
             return "file system is not mounted";
 
-        try {
-            Directory directory = myManager.directory(myCurrentDir);
-            ArrayList<String> listItems = new ArrayList<String>(directory.entries.size());
+        Directory directory = myManager.directory(myCurrentDir);
+        ArrayList<String> listItems = new ArrayList<String>(directory.entries.size());
 
-            directory.entries.forEach((key, value) -> listItems.add((value.getType() == Parameters.EntryType.DIRECTORY ? "d: " : "f: ") + key));
+        directory.entries.forEach((key, value) -> listItems.add((value.getType() == Parameters.EntryType.DIRECTORY ? "d: " : "f: ") + key));
 
-            Collections.sort(listItems);
+        Collections.sort(listItems);
 
-            StringBuilder builder = new StringBuilder();
-            for (String item : listItems) {
-                if (builder.length() > 0)
-                    builder.append("\n");
-                builder.append(item);
-            }
-
-            return builder.toString();
-        } catch (IOException e) {
-            return "could not list directory, reason: " + e.getMessage();
+        StringBuilder builder = new StringBuilder();
+        for (String item : listItems) {
+            if (builder.length() > 0)
+                builder.append("\n");
+            builder.append(item);
         }
+
+        return builder.toString();
     }
 
-    private String mountFile(String command[]) {
+    private String mountFile(String command[]) throws JFSException {
         if (command.length < 2)
             return "file name is not provided";
 
@@ -165,9 +160,9 @@ public class Console {
             myCurrentPath = new ArrayList<String>();
             myCurrentFile = "@" + command[1] + ":";
         } catch (FileNotFoundException e) {
-            System.err.println("file not found");
-        } catch (IOException e) {
-            System.err.println("file access problems: " + e.getMessage());
+            return "file " + command[1] + " not found";
+        } catch (JFSBadFileException e) {
+            return "file " + command[1] + " could not be mounted: " + e.getMessage();
         }
 
         return "";
@@ -181,18 +176,23 @@ public class Console {
         return "";
     }
 
-    public String execute(String[] command) {
+    public String execute(String[] command) throws UnsupportedEncodingException, JFSException {
         assert command.length > 0;
 
-        switch (command[0]) {
-            case "cd"    : return changeDirectory(command);
-            case "create": return crateFile(command);
-            case "format": return formatFile(command);
-            case "ls"    : return listDirectory();
-            case "umount": return umountFile();
-            case "mount" : return mountFile(command);
-        }
+        try {
+            switch (command[0]) {
+                case "cd"    : return changeDirectory(command);
+                case "create": return crateFile(command);
+                case "format": return formatFile(command);
+                case "ls"    : return listDirectory();
+                case "umount": return umountFile();
+                case "mount" : return mountFile(command);
+            }
 
-        return "unsupported command";
+            return "unsupported command";
+        } catch (JFSException e) {
+            umountFile();
+            return "logic error encountered: " + e.getMessage() + ",\n" + e.getStackTrace().toString();
+        }
     }
 }
