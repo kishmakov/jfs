@@ -8,10 +8,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 
-public class DirectoryBlock {
+public class DirectoryBlock extends Block {
     private final static short HEADER_SIZE = 2;
 
-    private final short myTotalSize;
     private short myUnusedSize;
 
     public final ArrayList<DirectoryEntry> entries = new ArrayList<DirectoryEntry>();
@@ -23,16 +22,16 @@ public class DirectoryBlock {
         return block;
     }
 
-    public DirectoryBlock(short size) {
-        myTotalSize = size;
+    public DirectoryBlock(int size) {
+        super(size);
         myUnusedSize = (short) (size - HEADER_SIZE);
     }
 
     public DirectoryBlock(ByteBuffer buffer) throws JFSException {
-        myTotalSize = (short) buffer.capacity();
+        super(buffer.capacity());
         myUnusedSize = buffer.getShort();
 
-        while (buffer.position() + myUnusedSize < myTotalSize) {
+        while (buffer.position() + myUnusedSize < mySize) {
             entries.add(new DirectoryEntry(buffer));
         }
     }
@@ -47,15 +46,12 @@ public class DirectoryBlock {
         return true;
     }
 
+    @Override
     public ByteBuffer toBuffer() {
-        ByteBuffer buffer = FileSystemAccessor.newBuffer(myTotalSize);
-        assert buffer.order() == ByteOrder.BIG_ENDIAN;
+        ByteBuffer buffer = super.toBuffer();
 
         buffer.putShort(myUnusedSize);
-
-        for (DirectoryEntry entry: entries) {
-            buffer.put(entry.toBuffer());
-        }
+        entries.forEach(item -> buffer.put(item.toBuffer()));
 
         buffer.rewind();
         return buffer;

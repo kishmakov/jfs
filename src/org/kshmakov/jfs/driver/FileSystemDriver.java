@@ -23,8 +23,7 @@ import org.kshmakov.jfs.io.NameHelper;
 
 @ThreadSafe
 public final class FileSystemDriver {
-    private final FileSystemAccessor myAccessor;
-    private final FileSystemLocator myLocator;
+    private final FileSystemAccessor myAccessor;    
 
     private final ReadWriteLock[] myInodeLocks = new ReadWriteLock[16];
     private final Lock myHeaderLock = new ReentrantLock();
@@ -37,24 +36,18 @@ public final class FileSystemDriver {
 
     @GuardedBy("myInodeLocks")
     private ByteBuffer readInode(int inodeId) throws JFSException {
-        return myAccessor.readBuffer(myLocator.inodeOffset(inodeId), Parameters.INODE_SIZE);
+        return myAccessor.readBuffer(myAccessor.inodeOffset(inodeId), Parameters.INODE_SIZE);
     }
 
     @GuardedBy("myInodeLocks")
     private void writeInode(int inodeId, ByteBuffer buffer) throws JFSException {
         assert buffer.capacity() == Parameters.INODE_SIZE;
-        myAccessor.writeBuffer(buffer, myLocator.inodeOffset(inodeId));
+        myAccessor.writeBuffer(buffer, myAccessor.inodeOffset(inodeId));
     }
 
     @GuardedBy("myInodeLocks")
     private ByteBuffer readBlock(int blockId) throws JFSException {
-        return myAccessor.readBuffer(myLocator.blockOffset(blockId), Header.DATA_BLOCK_SIZE);
-    }
-
-    @GuardedBy("myInodeLocks")
-    private void writeBlock(int blockId, ByteBuffer buffer) throws JFSException {
-        assert buffer.capacity() == Header.DATA_BLOCK_SIZE;
-        myAccessor.writeBuffer(buffer, myLocator.blockOffset(blockId));
+        return myAccessor.readBuffer(myAccessor.blockOffset(blockId), Header.DATA_BLOCK_SIZE);
     }
 
     @GuardedBy("myHeaderLock")
@@ -65,7 +58,7 @@ public final class FileSystemDriver {
         int minSize = Math.min(AllocatedInode.DIRECT_POINTERS_NUMBER, blocks.size());
 
         for (int blockId = 0; blockId < minSize && inode.directPointers[blockId] != 0; ++blockId) {
-            writeBlock(inode.directPointers[blockId], blocks.get(blockId).toBuffer());
+            myAccessor.writeBlock(blocks.get(blockId), inode.directPointers[blockId]);
         }
     }
 
@@ -96,9 +89,8 @@ public final class FileSystemDriver {
 
     public FileSystemDriver(String name) throws FileNotFoundException, JFSException {
         myAccessor = new FileSystemAccessor(name);
-        myLocator = new FileSystemLocator(myAccessor);
-        myInodesStack = new InodesStack(myAccessor, myLocator);
-        myBlocksStack = new BlocksStack(myAccessor, myLocator);
+        myInodesStack = new InodesStack(myAccessor);
+        myBlocksStack = new BlocksStack(myAccessor);
 
         for (int i = 0; i < myInodeLocks.length; ++i) {
             myInodeLocks[i] = new ReentrantReadWriteLock();
@@ -144,7 +136,7 @@ public final class FileSystemDriver {
                 newInode.parentId = descriptor.inodeId;
                 newInode.objectSize = Header.DATA_BLOCK_SIZE;
                 newInode.directPointers[0] = myBlocksStack.pop();
-                writeBlock(newInode.directPointers[0], DirectoryBlock.emptyDirectoryBlock().toBuffer());
+                myAccessor.writeBlock(DirectoryBlock.emptyDirectoryBlock(), newInode.directPointers[0]);
                 int newInodeId = myInodesStack.pop();
                 writeInode(newInodeId, newInode.toBuffer());
 

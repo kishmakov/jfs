@@ -1,23 +1,18 @@
 package org.kshmakov.jfs.io.primitives;
 
-import org.kshmakov.jfs.io.FileSystemAccessor;
-
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
-public class VacantBlock {
+public class VacantBlock extends Block {
     public final int nextId;
-    private final int size;
 
     public VacantBlock(int size, int nextId) {
-        this.size = size;
+        super(size);
         this.nextId = nextId;
     }
 
+    @Override
     public ByteBuffer toBuffer() {
-        ByteBuffer buffer = FileSystemAccessor.newBuffer(size);
-        assert buffer.order() == ByteOrder.BIG_ENDIAN;
-
+        ByteBuffer buffer = super.toBuffer();
         buffer.putInt(nextId);
 
         buffer.rewind();
