@@ -1,7 +1,9 @@
 package org.kshmakov.jfs;
 
+import org.kshmakov.jfs.driver.Directory;
 import org.kshmakov.jfs.driver.DirectoryDescriptor;
 import org.kshmakov.jfs.driver.FileSystemDriver;
+import org.kshmakov.jfs.driver.JFSRefuseException;
 import org.kshmakov.jfs.io.*;
 import org.kshmakov.jfs.io.tools.NameHelper;
 
@@ -43,13 +45,15 @@ public class Console {
             return "directory name is not provided, " + usage;
         }
 
-        Directory directory = myDriver.directory(myCurrentDir);
+        Directory directory = myDriver.getEntries(myCurrentDir);
 
-        if (!directory.directories.containsKey(command[1])) {
+        DirectoryDescriptor newDir = directory.getDirectory(command[1]);
+
+        if (newDir == null) {
             return "no such directory";
         }
 
-        myCurrentDir = directory.directories.get(command[1]);
+        myCurrentDir = newDir;
 
         switch (command[1]) {
             case ".":
@@ -122,14 +126,15 @@ public class Console {
     }
 
     private String listDirectory() throws JFSException {
-        if (myDriver == null)
+        if (myDriver == null) {
             return "file system is not mounted";
+        }
 
-        Directory directory = myDriver.directory(myCurrentDir);
-        ArrayList<String> listItems = new ArrayList<String>(directory.directories.size() + directory.files.size());
+        Directory directory = myDriver.getEntries(myCurrentDir);
+        ArrayList<String> listItems = new ArrayList<String>(directory.entriesNumber());
 
-        directory.directories.forEach((key, value) -> listItems.add("d: " + key));
-        directory.files.forEach((key, value) -> listItems.add("f: " + key));
+        directory.directories.forEach(item -> listItems.add("d: " + item.name));
+        directory.files.forEach(item -> listItems.add("f: " + item.name));
 
         Collections.sort(listItems);
 
@@ -143,7 +148,21 @@ public class Console {
         return builder.toString();
     }
 
-    private String makeDirectory(String[] command) {
+    private String makeDirectory(String[] command) throws JFSException {
+        if (myDriver == null) {
+            return "file system is not mounted";
+        }
+
+        if (command.length < 2) {
+            return "directory name is not provided, usage: mkdir directory_name";
+        }
+
+        try {
+            myDriver.addDirectory(myCurrentDir, command[1]);
+        } catch (JFSRefuseException e) {
+            return "could not create directory: " + e.getMessage();
+        }
+
         return "";
     }
 
@@ -185,7 +204,7 @@ public class Console {
                 case "create": return crateFile(command);
                 case "format": return formatFile(command);
                 case "ls"    : return listDirectory();
-                case "md"    : return makeDirectory(command);
+                case "mkdir" : return makeDirectory(command);
                 case "mount" : return mountFile(command);
                 case "umount": return umountFile();
             }

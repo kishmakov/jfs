@@ -1,6 +1,8 @@
 package org.kshmakov.jfs.driver;
 
-public class JFSRefuseException extends Exception {
+import org.kshmakov.jfs.JFSException;
+
+public class JFSRefuseException extends JFSException {
     public JFSRefuseException(String message) {
         super(message);
     }

@@ -4,7 +4,7 @@ public class FileDescriptor {
     public final int inodeId;
     public final String name;
 
-    public FileDescriptor(int inodeId, String name) {
+    FileDescriptor(int inodeId, String name) {
         this.inodeId = inodeId;
         this.name = name;
     }

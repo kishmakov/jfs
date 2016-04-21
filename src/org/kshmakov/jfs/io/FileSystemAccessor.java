@@ -60,6 +60,7 @@ public class FileSystemAccessor {
             ByteBuffer result = ByteBuffer.allocate(size);
             result.order(ByteOrder.BIG_ENDIAN);
             myChannel.read(result, position);
+            result.rewind();
             return result;
         } catch (IOException e) {
             throw new JFSBadFileException("could not read buffer from file: " + e.getMessage());

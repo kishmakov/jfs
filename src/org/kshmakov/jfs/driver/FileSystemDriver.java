@@ -1,5 +1,8 @@
 package org.kshmakov.jfs.driver;
 
+import com.sun.istack.internal.NotNull;
+import net.jcip.annotations.GuardedBy;
+import net.jcip.annotations.NotThreadSafe;
 import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.io.*;
 import org.kshmakov.jfs.io.primitives.AllocatedInode;
@@ -14,6 +17,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import net.jcip.annotations.ThreadSafe;
+import org.kshmakov.jfs.io.tools.NameHelper;
 
 @ThreadSafe
 public final class FileSystemDriver {
@@ -21,64 +25,77 @@ public final class FileSystemDriver {
     private final FileSystemLocator myLocator;
     private final ReadWriteLock[] myInodeLocks = new ReadWriteLock[16];
 
-    private ByteBuffer inodeBuffer(int inodeId) throws JFSBadFileException {
-        int offset = myLocator.inodeOffset(inodeId);
-        ByteBuffer buffer = myAccessor.readBuffer(offset, Parameters.INODE_SIZE);
-        buffer.rewind();
-        return buffer;
+    private ByteBuffer inodeBuffer(int inodeId) throws JFSException {
+        return myAccessor.readBuffer(myLocator.inodeOffset(inodeId), Parameters.INODE_SIZE);
     }
 
-    private AllocatedInode inode(int inodeId) throws JFSBadFileException {
-        return new AllocatedInode(inodeBuffer(inodeId));
+    private ByteBuffer blockBuffer(int blockId) throws JFSException {
+        return myAccessor.readBuffer(myLocator.blockOffset(blockId), Header.DATA_BLOCK_SIZE);
     }
 
-    private ByteBuffer blockBuffer(int blockId) throws JFSBadFileException {
-        int offset = myLocator.blockOffset(blockId);
-        ByteBuffer buffer = myAccessor.readBuffer(offset, Header.DATA_BLOCK_SIZE);
-        buffer.rewind();
-        return buffer;
+    @NotNull @GuardedBy("myInodeLocks")
+    private Directory getEntries(int inodeId) throws JFSException {
+        AllocatedInode inode = new AllocatedInode(inodeBuffer(inodeId));
+        Directory directory = new Directory();
+
+        for (int blockId : inode.directPointers) {
+            if (blockId == 0)
+                continue;
+
+            DirectoryBlock block = new DirectoryBlock(blockBuffer(blockId));
+
+            for (DirectoryEntry entry : block.entries) {
+                if (entry.type == Parameters.EntryType.DIRECTORY) {
+                    directory.directories.add(new DirectoryDescriptor(entry.inodeId, entry.name));
+                } else {
+                    directory.files.add(new FileDescriptor(entry.inodeId, entry.name));
+                }
+            }
+        }
+
+        // TODO: indirect blocks
+        return directory;
     }
 
+    @NotNull
     public static DirectoryDescriptor rootInode() {
         return new DirectoryDescriptor(Parameters.ROOT_INODE_ID, "");
     }
 
-    public Directory directory(DirectoryDescriptor descriptor) throws JFSException {
-        Directory directory = new Directory();
+    @NotNull
+    public DirectoryDescriptor addDirectory(DirectoryDescriptor descriptor, String name) throws JFSException {
+        String resolution = NameHelper.inspect(name);
+        if (!resolution.isEmpty()) {
+            throw new JFSRefuseException(resolution);
+        }
 
-        AllocatedInode inode = null;
+        Lock writeLock = myInodeLocks[descriptor.inodeId % myInodeLocks.length].writeLock();
+        writeLock.lock();
 
+        try {
+            Directory directory = getEntries(descriptor.inodeId);
+            if (directory.getDirectory(name) != null || directory.getFile(name) != null) {
+                throw new JFSRefuseException(name + " is already in use");
+            }
+
+            return new DirectoryDescriptor(0, "");
+        }
+        finally {
+            writeLock.unlock();
+        }
+    }
+
+    @NotNull
+    public Directory getEntries(DirectoryDescriptor descriptor) throws JFSException {
         Lock readLock = myInodeLocks[descriptor.inodeId % myInodeLocks.length].readLock();
         readLock.lock();
 
-//        try {
-            inode = inode(descriptor.inodeId);
-//        }
-
-//        finally {
-//            readLock.unlock();
-//        }
-
-            for (int blockId : inode.directPointers) {
-                if (blockId == 0)
-                    continue;
-
-                ByteBuffer buffer = blockBuffer(blockId);
-                DirectoryBlock block = new DirectoryBlock(buffer);
-
-                for (DirectoryEntry entry : block.entries) {
-                    if (entry.type == Parameters.EntryType.DIRECTORY) {
-                        directory.directories.put(entry.name, new DirectoryDescriptor(entry.inodeId, entry.name));
-                    } else {
-                        directory.files.put(entry.name, new FileDescriptor(entry.inodeId, entry.name));
-                    }
-                }
-            }
-
-
-        // TODO: indirect blocks
-
-        return directory;
+        try {
+            return getEntries(descriptor.inodeId);
+        }
+        finally {
+            readLock.unlock();
+        }
     }
 
     public FileSystemDriver(String name) throws FileNotFoundException, JFSException {
