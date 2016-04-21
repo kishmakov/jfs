@@ -3,31 +3,12 @@ package org.kshmakov.jfs.io.primitives;
 import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.io.FileSystemAccessor;
 import org.kshmakov.jfs.io.Parameters;
+import org.kshmakov.jfs.io.tools.NameHelper;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
 public class DirectoryEntry {
     private final static short ENTRY_HEADER_SIZE = 6;
-    private final static String CHARSET = "UTF-8";
-
-    public final static short MAX_NAME_SIZE = 255;
-
-    public static String checkName(String name) throws UnsupportedEncodingException {
-        if (name.isEmpty()) {
-            return "entry name must not be empty";
-        }
-
-        if (name.indexOf(Parameters.SEPARATOR) != -1) {
-            return "entry name must not contain separator character";
-        }
-
-        if (name.getBytes(CHARSET).length > MAX_NAME_SIZE) {
-            return "entry name length limit exceeded";
-        }
-
-        return "";
-    }
 
     public final int inodeId;
     public final Parameters.EntryType type;
@@ -35,24 +16,19 @@ public class DirectoryEntry {
 
     private final byte[] myNameBytes;
 
-    public DirectoryEntry(int inodeId, Parameters.EntryType type, String name) throws UnsupportedEncodingException, JFSException {
+    public DirectoryEntry(int inodeId, Parameters.EntryType type, String name) throws JFSException {
         this.inodeId = inodeId;
         this.type = type;
-        String checkResult = checkName(name);
-        if (!checkResult.isEmpty()) {
-            throw new JFSException("bad name provided: " + checkResult);
-        }
-
         this.name = name;
-        myNameBytes = name.getBytes(CHARSET);
+        myNameBytes = NameHelper.toBytes(name);
     }
 
-    public DirectoryEntry(ByteBuffer buffer) throws UnsupportedEncodingException {
+    public DirectoryEntry(ByteBuffer buffer) throws JFSException {
         inodeId = buffer.getInt();
         type = Parameters.byteToType(buffer.get());
         myNameBytes = new byte[buffer.get()];
         buffer.get(myNameBytes, 0, myNameBytes.length);
-        name = new String(myNameBytes, CHARSET);
+        name = NameHelper.fromBytes(myNameBytes);
     }
 
     public short size() {

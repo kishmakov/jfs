@@ -49,7 +49,7 @@ public final class FileSystemManager {
         return new DirectoryDescriptor(Parameters.ROOT_INODE_ID, "");
     }
 
-    public Directory directory(Descriptor descriptor) throws JFSBadFileException, UnsupportedEncodingException {
+    public Directory directory(Descriptor descriptor) throws JFSException {
         assert descriptor.getType() == Parameters.EntryType.DIRECTORY;
 
         Directory directory = new Directory();

@@ -18,7 +18,7 @@ public class DirectoryBlock {
 
     public final ArrayList<DirectoryEntry> entries = new ArrayList<DirectoryEntry>();
 
-    public static DirectoryBlock emptyDirectoryBlock() throws UnsupportedEncodingException, JFSException {
+    public static DirectoryBlock emptyDirectoryBlock() throws JFSException {
         DirectoryBlock block = new DirectoryBlock(Header.DATA_BLOCK_SIZE);
         block.tryInsert(new DirectoryEntry(1, Parameters.EntryType.DIRECTORY, "."));
         block.tryInsert(new DirectoryEntry(1, Parameters.EntryType.DIRECTORY, ".."));
@@ -30,7 +30,7 @@ public class DirectoryBlock {
         myUnusedSize = (short) (size - HEADER_SIZE);
     }
 
-    public DirectoryBlock(ByteBuffer buffer) throws UnsupportedEncodingException {
+    public DirectoryBlock(ByteBuffer buffer) throws JFSException {
         myTotalSize = (short) buffer.capacity();
         myUnusedSize = buffer.getShort();
 

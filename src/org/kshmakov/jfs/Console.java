@@ -1,6 +1,7 @@
 package org.kshmakov.jfs;
 
 import org.kshmakov.jfs.io.*;
+import org.kshmakov.jfs.io.tools.NameHelper;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -19,12 +20,12 @@ public class Console {
         StringBuilder builder = new StringBuilder();
         if (!myCurrentFile.isEmpty()) {
             builder.append(myCurrentFile);
-            builder.append(Parameters.SEPARATOR);
+            builder.append(NameHelper.SEPARATOR);
 
             boolean firstItem = true;
             for (String pathItem : myCurrentPath) {
                 if (!firstItem)
-                    builder.append(Parameters.SEPARATOR);
+                    builder.append(NameHelper.SEPARATOR);
 
                 firstItem = false;
                 builder.append(pathItem);
@@ -34,7 +35,7 @@ public class Console {
         return builder.append("> ").toString();
     }
 
-    private String changeDirectory(String command[]) throws UnsupportedEncodingException, JFSBadFileException {
+    private String changeDirectory(String[] command) throws JFSException {
         String usage = "usage: cd dir_name";
 
         if (command.length < 2) {
@@ -70,7 +71,7 @@ public class Console {
         return "";
     }
 
-    private String crateFile(String command[]) throws UnsupportedEncodingException, JFSException {
+    private String crateFile(String[] command) throws JFSException {
         String usage = "usage: create file_name file_size";
 
         if (command.length < 2) {
@@ -108,7 +109,7 @@ public class Console {
         return formatResult.isEmpty() ? "done" : formatResult;
     }
 
-    private String formatFile(String command[]) throws UnsupportedEncodingException, JFSException {
+    private String formatFile(String[] command) throws JFSException {
         String usage = "usage: format file_name";
 
         if (command.length < 2) {
@@ -126,7 +127,7 @@ public class Console {
         return command[1] + " formatted";
     }
 
-    private String listDirectory() throws JFSBadFileException, UnsupportedEncodingException {
+    private String listDirectory() throws JFSException {
         if (myManager == null)
             return "file system is not mounted";
 
@@ -147,7 +148,11 @@ public class Console {
         return builder.toString();
     }
 
-    private String mountFile(String command[]) throws JFSException {
+    private String makeDirectory(String[] command) {
+        return "";
+    }
+
+    private String mountFile(String[] command) throws JFSException {
         if (command.length < 2)
             return "file name is not provided";
 
@@ -176,7 +181,7 @@ public class Console {
         return "";
     }
 
-    public String execute(String[] command) throws UnsupportedEncodingException, JFSException {
+    public String execute(String[] command) {
         assert command.length > 0;
 
         try {
@@ -185,8 +190,9 @@ public class Console {
                 case "create": return crateFile(command);
                 case "format": return formatFile(command);
                 case "ls"    : return listDirectory();
-                case "umount": return umountFile();
+                case "md"    : return makeDirectory(command);
                 case "mount" : return mountFile(command);
+                case "umount": return umountFile();
             }
 
             return "unsupported command";

@@ -1,11 +1,8 @@
 package org.kshmakov.jfs.io;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-
 public interface Parameters {
     long MIN_SIZE = 239;
-    long MAX_SIZE = 100500;
+    long MAX_SIZE = 10000000;
 
     int HEADER_SIZE = 32;
     int INODE_SIZE = 64;
@@ -13,8 +10,6 @@ public interface Parameters {
     int MAGIC_NUMBER = 0xAABBCCDD;
 
     int ROOT_INODE_ID = 1;
-
-    char SEPARATOR = '/';
 
     enum EntryType {
         DIRECTORY,

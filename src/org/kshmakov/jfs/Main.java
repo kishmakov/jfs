@@ -35,7 +35,7 @@ import java.util.Scanner;
 
 public class Main {
 
-    public static void main(String[] args) throws UnsupportedEncodingException, JFSException {
+    public static void main(String[] args) {
         Console console = new Console();
         Scanner input = new Scanner(System.in);
 

@@ -36,7 +36,7 @@ public class Formatter {
         return header;
     }
 
-    public static void formatFile(String fileName) throws UnsupportedEncodingException, JFSException, FileNotFoundException {
+    public static void formatFile(String fileName) throws JFSException, FileNotFoundException {
         FileSystemAccessor accessor = new FileSystemAccessor(fileName);
 
         Header header = emptyFileHeader(accessor.fileSize);
