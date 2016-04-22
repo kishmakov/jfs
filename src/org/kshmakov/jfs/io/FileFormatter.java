@@ -9,16 +9,14 @@ import org.kshmakov.jfs.io.primitives.InodeBase;
 public class FileFormatter extends FileAccessorBase {
 
     @Override
-    protected int getTotalInodes()
-    {
+    protected int getTotalInodes() {
         assert fileSize >= Parameters.MIN_SIZE && fileSize <= Parameters.MAX_SIZE;
         // heuristic rule, see https://en.wikipedia.org/wiki/Inode#Details
         return Math.max(1, (int) (fileSize / (100 * Parameters.INODE_SIZE)));
     }
 
     @Override
-    protected int getTotalBlocks()
-    {
+    protected int getTotalBlocks() {
         assert fileSize >= Parameters.MIN_SIZE && fileSize <= Parameters.MAX_SIZE;
         long inodesSize = getTotalInodes() * Parameters.INODE_SIZE;
         long sizeLeft = fileSize - Parameters.HEADER_SIZE - inodesSize;

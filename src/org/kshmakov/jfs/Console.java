@@ -9,7 +9,6 @@ import org.kshmakov.jfs.io.JFSBadFileException;
 import org.kshmakov.jfs.io.NameHelper;
 import org.kshmakov.jfs.io.Parameters;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
@@ -196,13 +195,20 @@ public class Console {
 
         try {
             switch (command[0]) {
-                case "cd"    : return changeDirectory(command);
-                case "create": return crateFile(command);
-                case "format": return formatFile(command);
-                case "ls"    : return listDirectory();
-                case "mkdir" : return makeDirectory(command);
-                case "mount" : return mountFile(command);
-                case "umount": return umountFile();
+                case "cd":
+                    return changeDirectory(command);
+                case "create":
+                    return crateFile(command);
+                case "format":
+                    return formatFile(command);
+                case "ls":
+                    return listDirectory();
+                case "mkdir":
+                    return makeDirectory(command);
+                case "mount":
+                    return mountFile(command);
+                case "umount":
+                    return umountFile();
             }
 
             return "unsupported command";

@@ -29,6 +29,16 @@ public final class FileSystemDriver {
     @GuardedBy("myHeaderLock")
     private final BlocksStack myBlocksStack;
 
+    public FileSystemDriver(String name) throws JFSException {
+        myAccessor = new FileAccessor(name);
+        myInodesStack = new InodesStack(myAccessor);
+        myBlocksStack = new BlocksStack(myAccessor);
+
+        for (int i = 0; i < myInodesLocks.length; ++i) {
+            myInodesLocks[i] = new ReentrantReadWriteLock();
+        }
+    }
+
     @GuardedBy("myInodesLocks")
     private int allocateInode(InodeBase inode) throws JFSException {
         int inodeId;
@@ -40,8 +50,7 @@ public final class FileSystemDriver {
             }
 
             inodeId = myInodesStack.pop();
-        }
-        finally {
+        } finally {
             myHeaderLock.unlock();
         }
 
@@ -62,8 +71,7 @@ public final class FileSystemDriver {
                 while (amount-- > 0) {
                     result.add(myBlocksStack.pop());
                 }
-            }
-            finally {
+            } finally {
                 myHeaderLock.unlock();
             }
         }
@@ -159,16 +167,6 @@ public final class FileSystemDriver {
 
         // TODO: indirect blocks
         return directory;
-    }
-
-    public FileSystemDriver(String name) throws JFSException {
-        myAccessor = new FileAccessor(name);
-        myInodesStack = new InodesStack(myAccessor);
-        myBlocksStack = new BlocksStack(myAccessor);
-
-        for (int i = 0; i < myInodesLocks.length; ++i) {
-            myInodesLocks[i] = new ReentrantReadWriteLock();
-        }
     }
 
     @NotNull

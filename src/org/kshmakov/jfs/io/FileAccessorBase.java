@@ -23,6 +23,7 @@ abstract public class FileAccessorBase {
     protected final int myTotalBlocks;
 
     abstract protected int getTotalInodes() throws JFSBadFileException;
+
     abstract protected int getTotalBlocks() throws JFSBadFileException;
 
     static public ByteBuffer newBuffer(int size) {

@@ -12,7 +12,7 @@ public class Main {
         if (args.length > 0) {
             try {
                 Scanner scanner = new Scanner(new File(args[0]));
-                while(scanner.hasNextLine()){
+                while (scanner.hasNextLine()) {
                     console.execute(scanner.nextLine().trim().split(" "));
                 }
             } catch (FileNotFoundException e) {
