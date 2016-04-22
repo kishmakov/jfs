@@ -23,7 +23,6 @@ public class AllocatedInode extends InodeBase {
 
     public AllocatedInode(ByteBuffer buffer) {
         super(0);
-
         assert buffer.position() + Parameters.INODE_SIZE <= buffer.capacity();
 
         type = Parameters.byteToType(buffer.get());

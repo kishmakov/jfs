@@ -79,6 +79,7 @@ abstract public class FileAccessorBase {
         try {
             ByteBuffer buffer = newBuffer(Parameters.DATA_BLOCK_SIZE);
             myChannel.read(buffer, blockOffset(blockId));
+            buffer.rewind();
             return buffer;
         } catch (IOException e) {
             throw new JFSBadFileException("could not read buffer from file: " + e.getMessage());
@@ -102,6 +103,7 @@ abstract public class FileAccessorBase {
         try {
             ByteBuffer buffer = newBuffer(Parameters.INODE_SIZE);
             myChannel.read(buffer, inodeOffset(inodeId));
+            buffer.rewind();
             return buffer;
         } catch (IOException e) {
             throw new JFSBadFileException("could not read buffer from file: " + e.getMessage());
