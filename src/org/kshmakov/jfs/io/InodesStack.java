@@ -11,8 +11,8 @@ public class InodesStack {
 
     public InodesStack(FileSystemAccessor accessor) throws JFSBadFileException {
         myAccessor = accessor;
-        myUnallocatedInodes = accessor.readInt(Offsets.TOTAL_UNALLOCATED_INODES);
-        myFirstUnallocatedId = accessor.readInt(Offsets.FIRST_UNALLOCATED_INODE_ID);
+        myUnallocatedInodes = accessor.readInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES);
+        myFirstUnallocatedId = accessor.readInt(HeaderOffsets.FIRST_UNALLOCATED_INODE_ID);
     }
 
     public boolean empty() {
@@ -24,16 +24,16 @@ public class InodesStack {
         int resultId = myFirstUnallocatedId;
 
         myFirstUnallocatedId = myAccessor.readInt(myAccessor.inodeOffset(resultId));
-        myAccessor.writeInt(Offsets.FIRST_UNALLOCATED_INODE_ID, myFirstUnallocatedId);
-        myAccessor.writeInt(Offsets.TOTAL_UNALLOCATED_INODES, --myUnallocatedInodes);
+        myAccessor.writeInt(HeaderOffsets.FIRST_UNALLOCATED_INODE_ID, myFirstUnallocatedId);
+        myAccessor.writeInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES, --myUnallocatedInodes);
 
         return resultId;
     }
 
     public void push(int inodeId) throws JFSException {
         myAccessor.writeInt(myAccessor.inodeOffset(inodeId), myFirstUnallocatedId);
-        myAccessor.writeInt(Offsets.FIRST_UNALLOCATED_INODE_ID, inodeId);
-        myAccessor.writeInt(Offsets.TOTAL_UNALLOCATED_INODES, ++myUnallocatedInodes);
+        myAccessor.writeInt(HeaderOffsets.FIRST_UNALLOCATED_INODE_ID, inodeId);
+        myAccessor.writeInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES, ++myUnallocatedInodes);
         myFirstUnallocatedId = inodeId;
     }
 }

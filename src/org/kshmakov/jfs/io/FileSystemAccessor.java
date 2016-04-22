@@ -11,7 +11,7 @@ import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 
 import net.jcip.annotations.NotThreadSafe;
-import org.kshmakov.jfs.io.primitives.Block;
+import org.kshmakov.jfs.io.primitives.BlockBase;
 import org.kshmakov.jfs.io.primitives.Header;
 
 @NotThreadSafe
@@ -49,11 +49,11 @@ public class FileSystemAccessor {
             throw new JFSBadFileException("file size of " + fileName + " is not in range " + range);
         }
 
-        myTotalInodes = readInt(Offsets.TOTAL_INODES);
-        myTotalBlocks = readInt(Offsets.TOTAL_BLOCKS);
+        myTotalInodes = readInt(HeaderOffsets.TOTAL_INODES);
+        myTotalBlocks = readInt(HeaderOffsets.TOTAL_BLOCKS);
 
-        System.out.printf("inodes total = %d\n", myTotalInodes);
-        System.out.printf("blocks total = %d\n", myTotalBlocks);
+//        System.out.printf("inodes total = %d\n", myTotalInodes);
+//        System.out.printf("blocks total = %d\n", myTotalBlocks);
     }
 
     static public ByteBuffer newBuffer(int size) {
@@ -88,7 +88,7 @@ public class FileSystemAccessor {
         }
     }
 
-    public int writeBlock(Block block, int blockId) throws JFSException {
+    public int writeBlock(BlockBase block, int blockId) throws JFSException {
         try {
             ByteBuffer buffer = block.toBuffer();
             buffer.flip();
@@ -163,7 +163,7 @@ public class FileSystemAccessor {
         }
         return Parameters.HEADER_SIZE
                 + myTotalInodes * Parameters.INODE_SIZE
-                + (blockId - 1) * Header.DATA_BLOCK_SIZE;
+                + (blockId - 1) * Parameters.DATA_BLOCK_SIZE;
     }
 
 }

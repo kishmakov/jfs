@@ -6,9 +6,9 @@ import org.kshmakov.jfs.io.Parameters;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-public class AllocatedInode {
+public class AllocatedInode extends InodeBase {
 
-    public Parameters.EntryType type;
+    public final Parameters.EntryType type;
     public int parentId;
     public int objectSize;
 
@@ -18,10 +18,14 @@ public class AllocatedInode {
     public int singlyIndirectPointer;
     public int doublyIndirectPointer;
 
-    public AllocatedInode() {
+    public AllocatedInode(Parameters.EntryType type) {
+        super(0);
+        this.type = type;
     }
 
     public AllocatedInode(ByteBuffer buffer) {
+        super(0);
+
         assert buffer.position() + Parameters.INODE_SIZE <= buffer.capacity();
 
         type = Parameters.byteToType(buffer.get());

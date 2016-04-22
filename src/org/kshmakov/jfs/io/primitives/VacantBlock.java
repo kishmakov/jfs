@@ -2,7 +2,7 @@ package org.kshmakov.jfs.io.primitives;
 
 import java.nio.ByteBuffer;
 
-public class VacantBlock extends Block {
+public class VacantBlock extends BlockBase {
     public final int nextId;
 
     public VacantBlock(int size, int nextId) {

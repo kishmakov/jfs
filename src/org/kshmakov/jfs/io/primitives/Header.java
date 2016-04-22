@@ -7,8 +7,6 @@ import org.kshmakov.jfs.io.Parameters;
 import java.nio.ByteBuffer;
 
 public class Header {
-    public static final short FILE_SYSTEM_VERSION = 0x0000;
-    public static final short DATA_BLOCK_SIZE = 0x1000;
 
     public int inodesTotal;
     public int blocksTotal;
@@ -33,8 +31,8 @@ public class Header {
         short version = buffer.getShort();
         short blockSize = buffer.getShort();
 
-        assert version == FILE_SYSTEM_VERSION;
-        assert blockSize == DATA_BLOCK_SIZE;
+        assert version == Parameters.FILE_SYSTEM_VERSION;
+        assert blockSize == Parameters.DATA_BLOCK_SIZE;
 
         inodesTotal = buffer.getInt();
         blocksTotal = buffer.getInt();
@@ -50,8 +48,8 @@ public class Header {
         ByteBuffer buffer = FileSystemAccessor.newBuffer(Parameters.HEADER_SIZE);
 
         buffer.putInt(Parameters.MAGIC_NUMBER);
-        buffer.putShort(FILE_SYSTEM_VERSION);
-        buffer.putShort(DATA_BLOCK_SIZE);
+        buffer.putShort(Parameters.FILE_SYSTEM_VERSION);
+        buffer.putShort(Parameters.DATA_BLOCK_SIZE);
 
         buffer.putInt(inodesTotal);
         buffer.putInt(blocksTotal);

@@ -89,12 +89,9 @@ public class Console {
             return "bad size description provided";
         }
 
-        if (size < Parameters.MIN_SIZE) {
-            return "required size is too small, minimal size is " + Long.toString(Parameters.MIN_SIZE);
-        }
-
-        if (size > Parameters.MAX_SIZE) {
-            return "required size is too big, maximal size is " + Long.toString(Parameters.MAX_SIZE);
+        if (size < Parameters.MIN_SIZE || size > Parameters.MAX_SIZE) {
+            String range = "[" + Long.toString(Parameters.MIN_SIZE) + ", " + Long.toString(Parameters.MAX_SIZE) + "]";
+            throw new JFSBadFileException("requested size is not in range " + range);
         }
 
         try {
@@ -115,11 +112,10 @@ public class Console {
         }
 
         try {
-            Formatter.formatFile(command[1]);
+            Formatter formatter = new Formatter(command[1]);
+            formatter.format();
         } catch (JFSBadFileException e) {
             return "could not format file, reason: " + e.getMessage();
-        } catch (FileNotFoundException e) {
-            return "file not found";
         }
 
         return command[1] + " formatted";
@@ -212,7 +208,8 @@ public class Console {
             return "unsupported command";
         } catch (JFSException e) {
             umountFile();
-            return "logic error encountered: " + e.getMessage() + ",\n" + e.getStackTrace().toString();
+            e.printStackTrace(System.out);
+            return "logic error encountered: " + e.getMessage();
         }
     }
 }

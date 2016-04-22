@@ -6,16 +6,15 @@ import org.kshmakov.jfs.io.Parameters;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-public class VacantInode {
-
+public class BlockBase {
     public final int nextId;
 
-    public VacantInode(int nextId) {
+    public BlockBase(int nextId) {
         this.nextId = nextId;
     }
 
     public ByteBuffer toBuffer() {
-        ByteBuffer buffer = FileSystemAccessor.newBuffer(Parameters.INODE_SIZE);
+        ByteBuffer buffer = FileSystemAccessor.newBuffer(Parameters.DATA_BLOCK_SIZE);
         assert buffer.order() == ByteOrder.BIG_ENDIAN;
 
         buffer.putInt(nextId);
