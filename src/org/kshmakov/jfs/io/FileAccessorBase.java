@@ -31,6 +31,12 @@ abstract public class FileAccessorBase {
         return buffer;
     }
 
+    static public ByteBuffer newBuffer(byte[] bytes) {
+        ByteBuffer result = ByteBuffer.wrap(bytes);
+        result.order(ByteOrder.BIG_ENDIAN);
+        return result;
+    }
+
     protected FileAccessorBase(String fileName) throws JFSBadFileException {
         try {
             myFile = new RandomAccessFile(fileName, "rw");

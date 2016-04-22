@@ -118,14 +118,6 @@ public final class FileSystemDriver {
     @GuardedBy("myInodesLocks")
     private DirectoryDescriptor addDirectoryEntry(int inodeId, String name) throws JFSException {
         Directory directory = getEntries(inodeId);
-        if (directory.getDirectory(name) != null || directory.getFile(name) != null) {
-            throw new JFSRefuseException(name + " is already in use");
-        }
-
-        if (myBlocksStack.size() < 2) {
-            throw new JFSRefuseException("not enough unallocated blocks to perform operation");
-        }
-
         AllocatedInode newInode = new AllocatedInode(Parameters.EntryType.DIRECTORY);
         newInode.parentId = inodeId;
 
@@ -171,9 +163,6 @@ public final class FileSystemDriver {
         });
 
         writeFile(inodeId, blocks);
-
-
-
         return newDirectory;
     }
 
@@ -188,12 +177,12 @@ public final class FileSystemDriver {
     }
 
     @NotNull
-    public static DirectoryDescriptor rootInode() {
+    public DirectoryDescriptor rootInode() {
         return new DirectoryDescriptor(Parameters.ROOT_INODE_ID, "");
     }
 
     @NotNull
-    public DirectoryDescriptor addDirectory(DirectoryDescriptor descriptor, String name) throws JFSException {
+    public DirectoryDescriptor tryAddDirectory(DirectoryDescriptor descriptor, String name) throws JFSException {
         String resolution = NameHelper.inspect(name);
         if (!resolution.isEmpty()) {
             throw new JFSRefuseException(resolution);
@@ -203,6 +192,11 @@ public final class FileSystemDriver {
         writeLock.lock();
 
         try {
+            Directory directory = getEntries(descriptor.inodeId);
+            if (directory.getDirectory(name) != null || directory.getFile(name) != null) {
+                throw new JFSRefuseException(name + " is already in use");
+            }
+
             return addDirectoryEntry(descriptor.inodeId, name);
         } finally {
             writeLock.unlock();

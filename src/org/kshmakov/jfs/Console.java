@@ -4,8 +4,10 @@ import org.kshmakov.jfs.driver.Directory;
 import org.kshmakov.jfs.driver.DirectoryDescriptor;
 import org.kshmakov.jfs.driver.FileSystemDriver;
 import org.kshmakov.jfs.driver.JFSRefuseException;
-import org.kshmakov.jfs.io.*;
+import org.kshmakov.jfs.io.FileFormatter;
+import org.kshmakov.jfs.io.JFSBadFileException;
 import org.kshmakov.jfs.io.NameHelper;
+import org.kshmakov.jfs.io.Parameters;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -154,7 +156,7 @@ public class Console {
         }
 
         try {
-            myDriver.addDirectory(myCurrentDir, command[1]);
+            myDriver.tryAddDirectory(myCurrentDir, command[1]);
         } catch (JFSRefuseException e) {
             return "could not create directory: " + e.getMessage();
         }

@@ -34,8 +34,6 @@ public class AllocatedInode extends InodeBase {
         buffer.position(buffer.position() + Parameters.DIRECT_POINTERS_NUMBER * 4);
         buffer.getInt(singlyIndirectPointer);
         buffer.getInt(doublyIndirectPointer);
-
-        System.out.printf("parentId = %d\nobjectSize = %d\n", parentId, objectSize);
     }
 
     public ByteBuffer toBuffer() {
