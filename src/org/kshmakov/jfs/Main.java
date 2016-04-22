@@ -19,7 +19,9 @@ public class Main {
                 e.printStackTrace();
             }
 
-            return;
+            if (args.length < 2 || !args[1].equals("continue")) {
+                return;
+            }
         }
 
         Scanner input = new Scanner(System.in);

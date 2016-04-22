@@ -26,7 +26,7 @@ public class DirectoryEntry {
     public DirectoryEntry(ByteBuffer buffer) throws JFSException {
         inodeId = buffer.getInt();
         type = Parameters.byteToType(buffer.get());
-        myNameBytes = new byte[buffer.get()];
+        myNameBytes = new byte[(int) buffer.get() & 0xFF];
         buffer.get(myNameBytes, 0, myNameBytes.length);
         name = NameHelper.fromBytes(myNameBytes);
     }
