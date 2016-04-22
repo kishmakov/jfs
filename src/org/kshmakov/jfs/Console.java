@@ -112,7 +112,7 @@ public class Console {
         }
 
         try {
-            Formatter formatter = new Formatter(command[1]);
+            FileFormatter formatter = new FileFormatter(command[1]);
             formatter.format();
         } catch (JFSBadFileException e) {
             return "could not format file, reason: " + e.getMessage();

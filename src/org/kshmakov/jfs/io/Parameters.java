@@ -13,6 +13,7 @@ public interface Parameters {
     short FILE_SYSTEM_VERSION = 0x0000;
 
     int ROOT_INODE_ID = 1;
+    int DIRECT_POINTERS_NUMBER = 12;
 
     enum EntryType {
         DIRECTORY,

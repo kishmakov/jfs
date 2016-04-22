@@ -5,14 +5,14 @@ import org.kshmakov.jfs.JFSException;
 
 @NotThreadSafe
 public class InodesStack {
-    private FileSystemAccessor myAccessor;    
+    private FileAccessor myAccessor;
     private int myUnallocatedInodes;
     private int myFirstUnallocatedId;
 
-    public InodesStack(FileSystemAccessor accessor) throws JFSBadFileException {
+    public InodesStack(FileAccessor accessor) throws JFSBadFileException {
         myAccessor = accessor;
-        myUnallocatedInodes = accessor.readInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES);
-        myFirstUnallocatedId = accessor.readInt(HeaderOffsets.FIRST_UNALLOCATED_INODE_ID);
+        myUnallocatedInodes = accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES);
+        myFirstUnallocatedId = accessor.readHeaderInt(HeaderOffsets.FIRST_UNALLOCATED_INODE_ID);
     }
 
     public boolean empty() {
@@ -23,17 +23,17 @@ public class InodesStack {
         assert !empty();
         int resultId = myFirstUnallocatedId;
 
-        myFirstUnallocatedId = myAccessor.readInt(myAccessor.inodeOffset(resultId));
-        myAccessor.writeInt(HeaderOffsets.FIRST_UNALLOCATED_INODE_ID, myFirstUnallocatedId);
-        myAccessor.writeInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES, --myUnallocatedInodes);
+        myFirstUnallocatedId = myAccessor.readInodeInt(resultId, InodeOffsets.NEXT_INODE);
+        myAccessor.writeHeaderInt(myFirstUnallocatedId, HeaderOffsets.FIRST_UNALLOCATED_INODE_ID);
+        myAccessor.writeHeaderInt(--myUnallocatedInodes, HeaderOffsets.TOTAL_UNALLOCATED_INODES);
 
         return resultId;
     }
 
     public void push(int inodeId) throws JFSException {
-        myAccessor.writeInt(myAccessor.inodeOffset(inodeId), myFirstUnallocatedId);
-        myAccessor.writeInt(HeaderOffsets.FIRST_UNALLOCATED_INODE_ID, inodeId);
-        myAccessor.writeInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES, ++myUnallocatedInodes);
+        myAccessor.writeInodeInt(myFirstUnallocatedId, inodeId, InodeOffsets.NEXT_INODE);
+        myAccessor.writeHeaderInt(inodeId, HeaderOffsets.FIRST_UNALLOCATED_INODE_ID);
+        myAccessor.writeHeaderInt(++myUnallocatedInodes, HeaderOffsets.TOTAL_UNALLOCATED_INODES);
         myFirstUnallocatedId = inodeId;
     }
 }

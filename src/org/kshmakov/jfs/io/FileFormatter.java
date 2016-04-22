@@ -1,12 +1,14 @@
 package org.kshmakov.jfs.io;
 
 import org.kshmakov.jfs.JFSException;
-import org.kshmakov.jfs.io.primitives.*;
+import org.kshmakov.jfs.io.primitives.AllocatedInode;
+import org.kshmakov.jfs.io.primitives.BlockBase;
+import org.kshmakov.jfs.io.primitives.DirectoryBlock;
+import org.kshmakov.jfs.io.primitives.InodeBase;
 
-import java.io.FileNotFoundException;
+public class FileFormatter extends FileAccessorBase {
 
-public class Formatter extends FileAccessorBase {
-
+    @Override
     protected int getTotalInodes()
     {
         assert fileSize >= Parameters.MIN_SIZE && fileSize <= Parameters.MAX_SIZE;
@@ -14,6 +16,7 @@ public class Formatter extends FileAccessorBase {
         return (int) (fileSize / (100 * Parameters.INODE_SIZE));
     }
 
+    @Override
     protected int getTotalBlocks()
     {
         assert fileSize >= Parameters.MIN_SIZE && fileSize <= Parameters.MAX_SIZE;
@@ -22,7 +25,7 @@ public class Formatter extends FileAccessorBase {
         return (int) (sizeLeft / Parameters.DATA_BLOCK_SIZE);
     }
 
-    public Formatter(String fileName) throws JFSBadFileException {
+    public FileFormatter(String fileName) throws JFSBadFileException {
         super(fileName);
     }
 
@@ -32,11 +35,12 @@ public class Formatter extends FileAccessorBase {
         resetBlocks();
 
         AllocatedInode inode = new AllocatedInode(Parameters.EntryType.DIRECTORY);
-        inode.parentId = 1;
+        inode.parentId = Parameters.ROOT_INODE_ID;
         inode.objectSize = Parameters.DATA_BLOCK_SIZE;
         inode.directPointers[0] = 1;
-        writeInode(inode, 1);
-        writeBlock(DirectoryBlock.emptyDirectoryBlock(1, 1), 1);
+        writeInode(inode, Parameters.ROOT_INODE_ID);
+
+        writeBlock(DirectoryBlock.emptyDirectoryBlock(Parameters.ROOT_INODE_ID, Parameters.ROOT_INODE_ID), 1);
     }
 
     private void resetHeader() throws JFSBadFileException {

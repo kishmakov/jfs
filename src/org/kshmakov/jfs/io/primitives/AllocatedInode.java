@@ -1,6 +1,6 @@
 package org.kshmakov.jfs.io.primitives;
 
-import org.kshmakov.jfs.io.FileSystemAccessor;
+import org.kshmakov.jfs.io.FileAccessor;
 import org.kshmakov.jfs.io.Parameters;
 
 import java.nio.ByteBuffer;
@@ -12,9 +12,7 @@ public class AllocatedInode extends InodeBase {
     public int parentId;
     public int objectSize;
 
-    public static final int DIRECT_POINTERS_NUMBER = 12;
-
-    public int directPointers[] = new int[DIRECT_POINTERS_NUMBER];
+    public int directPointers[] = new int[Parameters.DIRECT_POINTERS_NUMBER];
     public int singlyIndirectPointer;
     public int doublyIndirectPointer;
 
@@ -34,7 +32,7 @@ public class AllocatedInode extends InodeBase {
 
         objectSize = buffer.getInt();
         buffer.asIntBuffer().get(directPointers);
-        buffer.position(buffer.position() + DIRECT_POINTERS_NUMBER * 4);
+        buffer.position(buffer.position() + Parameters.DIRECT_POINTERS_NUMBER * 4);
         buffer.getInt(singlyIndirectPointer);
         buffer.getInt(doublyIndirectPointer);
 
@@ -42,7 +40,7 @@ public class AllocatedInode extends InodeBase {
     }
 
     public ByteBuffer toBuffer() {
-        ByteBuffer buffer = FileSystemAccessor.newBuffer(Parameters.INODE_SIZE);
+        ByteBuffer buffer = FileAccessor.newBuffer(Parameters.INODE_SIZE);
         assert buffer.order() == ByteOrder.BIG_ENDIAN;
 
         buffer.put((byte) type.ordinal());
@@ -50,7 +48,7 @@ public class AllocatedInode extends InodeBase {
         buffer.putShort((short) (parentId & 0xFFFF));
         buffer.putInt(objectSize);
         buffer.asIntBuffer().put(directPointers);
-        buffer.position(buffer.position() + DIRECT_POINTERS_NUMBER * 4);
+        buffer.position(buffer.position() + Parameters.DIRECT_POINTERS_NUMBER * 4);
         buffer.putInt(singlyIndirectPointer);
         buffer.putInt(doublyIndirectPointer);
 

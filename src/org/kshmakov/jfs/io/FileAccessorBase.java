@@ -22,8 +22,8 @@ abstract public class FileAccessorBase {
     protected final int myTotalInodes;
     protected final int myTotalBlocks;
 
-    abstract protected int getTotalInodes();
-    abstract protected int getTotalBlocks();
+    abstract protected int getTotalInodes() throws JFSBadFileException;
+    abstract protected int getTotalBlocks() throws JFSBadFileException;
 
     static public ByteBuffer newBuffer(int size) {
         ByteBuffer buffer = ByteBuffer.allocate(size);
@@ -121,7 +121,7 @@ abstract public class FileAccessorBase {
         }
     }
 
-    protected int readInt(long position) throws JFSBadFileException {
+    private int readInt(long position) throws JFSBadFileException {
         try {
             assert position + 4 <= fileSize;
             ByteBuffer buffer = newBuffer(4);
@@ -133,7 +133,7 @@ abstract public class FileAccessorBase {
         }
     }
 
-    protected void writeInt(int number, long position) throws JFSBadFileException {
+    private void writeInt(int number, long position) throws JFSBadFileException {
         try {
             ByteBuffer buffer = newBuffer(4);
             buffer.putInt(number);
@@ -147,7 +147,7 @@ abstract public class FileAccessorBase {
         }
     }
 
-    protected long inodeOffset(int inodeId) throws JFSException {
+    private long inodeOffset(int inodeId) throws JFSException {
 
         if (inodeId <= 0 || inodeId > myTotalInodes) {
             String range = "[1; " + Integer.toString(myTotalInodes) + "]";
@@ -157,7 +157,7 @@ abstract public class FileAccessorBase {
         return Parameters.HEADER_SIZE + (inodeId - 1) * Parameters.INODE_SIZE;
     }
 
-    protected long blockOffset(int blockId) throws JFSException {
+    private long blockOffset(int blockId) throws JFSException {
         if (blockId <= 0 || blockId > myTotalBlocks) {
             String range = "[1; " + Integer.toString(myTotalBlocks) + "]";
             throw new JFSException("blockId=" + Integer.toString(blockId) + " not in " + range);
