@@ -3,8 +3,6 @@ package org.kshmakov.jfs.io;
 import net.jcip.annotations.NotThreadSafe;
 import org.kshmakov.jfs.JFSException;
 
-import java.io.File;
-
 @NotThreadSafe
 public class FileAccessor extends FileAccessorBase {
 
@@ -23,5 +21,8 @@ public class FileAccessor extends FileAccessorBase {
 
 //        System.out.printf("inodes total = %d\n", myTotalInodes);
 //        System.out.printf("blocks total = %d\n", myTotalBlocks);
+//
+//        System.out.printf("inodes free = %d\n", readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+//        System.out.printf("blocks free = %d\n", readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
     }
 }
