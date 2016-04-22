@@ -1,12 +1,12 @@
 package org.kshmakov.jfs.io;
 
 public interface Parameters {
-    long MIN_SIZE = 239;
-    long MAX_SIZE = 10000000;
-
     short HEADER_SIZE = 32;
     short DATA_BLOCK_SIZE = 0x1000;
     short INODE_SIZE = 64;
+
+    long MIN_SIZE = HEADER_SIZE + DATA_BLOCK_SIZE + INODE_SIZE;
+    long MAX_SIZE = Integer.MAX_VALUE - DATA_BLOCK_SIZE;
 
     int MAGIC_NUMBER = 0xAABBCCDD;
 

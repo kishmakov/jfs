@@ -13,7 +13,7 @@ public class FileFormatter extends FileAccessorBase {
     {
         assert fileSize >= Parameters.MIN_SIZE && fileSize <= Parameters.MAX_SIZE;
         // heuristic rule, see https://en.wikipedia.org/wiki/Inode#Details
-        return (int) (fileSize / (100 * Parameters.INODE_SIZE));
+        return Math.max(1, (int) (fileSize / (100 * Parameters.INODE_SIZE)));
     }
 
     @Override
