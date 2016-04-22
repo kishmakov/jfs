@@ -49,26 +49,6 @@ public final class FileSystemDriver {
         return inodeId;
     }
 
-    @GuardedBy("myInodesLocks")
-    private int allocateBlock(BlockBase block) throws JFSException {
-        int blockId;
-
-        myHeaderLock.lock();
-        try {
-            if (myBlocksStack.size() == 0) {
-                throw new JFSRefuseException("no unallocated blocks left");
-            }
-
-            blockId = myBlocksStack.pop();
-        }
-        finally {
-            myHeaderLock.unlock();
-        }
-
-        myAccessor.writeBlock(block, blockId);
-        return blockId;
-    }
-
     private ArrayList<Integer> allocateBlocks(int amount) throws JFSException {
         ArrayList<Integer> result = new ArrayList<Integer>(amount);
 
@@ -80,7 +60,7 @@ public final class FileSystemDriver {
                 }
 
                 while (amount-- > 0) {
-                    result.add(new Integer(myBlocksStack.pop()));
+                    result.add(myBlocksStack.pop());
                 }
             }
             finally {
@@ -89,14 +69,6 @@ public final class FileSystemDriver {
         }
 
         return result;
-    }
-
-    @GuardedBy("myInodesLocks")
-    private void appendBlock(int inodeId, int blockId) throws JFSException {
-        int size = myAccessor.readInodeInt(inodeId, InodeOffsets.OBJECT_SIZE);
-        size += Parameters.DATA_BLOCK_SIZE;
-        myAccessor.writeInodeInt(size, inodeId, InodeOffsets.OBJECT_SIZE);
-        myAccessor.writeInodeInt(blockId, inodeId, InodeOffsets.DIRECT_POINTERS[0]);
     }
 
     @GuardedBy("myInodesLocks")
@@ -123,6 +95,7 @@ public final class FileSystemDriver {
 
     @GuardedBy("myInodesLocks")
     private void writeFile(int inodeId, ByteBuffer buffer, int offset) throws JFSException {
+        buffer.rewind();
         int size = myAccessor.readInodeInt(inodeId, InodeOffsets.OBJECT_SIZE);
         if (size < offset + buffer.capacity()) {
             size = offset + buffer.capacity();
@@ -163,18 +136,6 @@ public final class FileSystemDriver {
         writeFile(inodeId, buffer, offset);
     }
 
-    @GuardedBy("myHeaderLock")
-    private void writeFile(int inodeId, ArrayList<DirectoryBlock> blocks) throws JFSException {
-        AllocatedInode inode = new AllocatedInode(myAccessor.readInode(inodeId));
-        assert inode.objectSize == blocks.size() * Parameters.DATA_BLOCK_SIZE;
-
-        int minSize = Math.min(Parameters.DIRECT_POINTERS_NUMBER, blocks.size());
-
-        for (int blockId = 0; blockId < minSize && inode.directPointers[blockId] != 0; ++blockId) {
-            myAccessor.writeBlock(blocks.get(blockId), inode.directPointers[blockId]);
-        }
-    }
-
     @NotNull
     @GuardedBy("myInodesLocks")
     private Directory getEntries(int inodeId) throws JFSException {
@@ -200,53 +161,6 @@ public final class FileSystemDriver {
         return directory;
     }
 
-    @GuardedBy("myInodesLocks")
-    private DirectoryDescriptor addDirectoryEntry(int inodeId, int newInodeId, String name) throws JFSException {
-        Directory directory = getEntries(inodeId);
-        int newBlockId = allocateBlock(DirectoryBlock.emptyDirectoryBlock(newInodeId, inodeId));
-        appendBlock(newInodeId, newBlockId);
-
-        DirectoryDescriptor newDirectory = new DirectoryDescriptor(newInodeId, name);
-        directory.directories.add(newDirectory);
-        ArrayList<DirectoryBlock> blocks = new ArrayList<DirectoryBlock>();
-        blocks.add(new DirectoryBlock(Parameters.DATA_BLOCK_SIZE));
-
-        directory.directories.forEach(item -> {
-            DirectoryBlock block = blocks.get(blocks.size() - 1);
-            DirectoryEntry entry = null;
-            try {
-                entry = new DirectoryEntry(item.inodeId, Parameters.EntryType.DIRECTORY, item.name);
-            } catch (JFSException e) {
-                e.printStackTrace(); // TODO: patch me
-            }
-            if (!block.tryInsert(entry)) {
-                DirectoryBlock newBlock = new DirectoryBlock(Parameters.DATA_BLOCK_SIZE);
-                boolean result = newBlock.tryInsert(entry);
-                assert result;
-                blocks.add(newBlock);
-            }
-        });
-
-        directory.files.forEach(item -> {
-            DirectoryBlock block = blocks.get(blocks.size() - 1);
-            DirectoryEntry entry = null;
-            try {
-                entry = new DirectoryEntry(item.inodeId, Parameters.EntryType.FILE, item.name);
-            } catch (JFSException e) {
-                e.printStackTrace(); // TODO: patch me
-            }
-            if (!block.tryInsert(entry)) {
-                DirectoryBlock newBlock = new DirectoryBlock(Parameters.DATA_BLOCK_SIZE);
-                boolean result = newBlock.tryInsert(entry);
-                assert result;
-                blocks.add(newBlock);
-            }
-        });
-
-        writeFile(inodeId, blocks);
-        return newDirectory;
-    }
-
     public FileSystemDriver(String name) throws JFSException {
         myAccessor = new FileAccessor(name);
         myInodesStack = new InodesStack(myAccessor);
@@ -263,7 +177,7 @@ public final class FileSystemDriver {
     }
 
     @NotNull
-    public DirectoryDescriptor tryAddDirectory(DirectoryDescriptor descriptor, String name) throws JFSException {
+    public void tryAddDirectory(DirectoryDescriptor descriptor, String name) throws JFSException {
         String resolution = NameHelper.inspect(name);
         if (!resolution.isEmpty()) {
             throw new JFSRefuseException(resolution);
@@ -278,12 +192,12 @@ public final class FileSystemDriver {
                 throw new JFSRefuseException(name + " is already in use");
             }
 
-            AllocatedInode newInode = new AllocatedInode(Parameters.EntryType.DIRECTORY, descriptor.inodeId);
-            int newInodeId = allocateInode(newInode);
+            int newInodeId = allocateInode(new AllocatedInode(Parameters.EntryType.DIRECTORY, descriptor.inodeId));
             DirectoryBlock newDirectory = DirectoryBlock.emptyDirectoryBlock(newInodeId, descriptor.inodeId);
             tryWriteFile(newInodeId, newDirectory.toBuffer(), 0);
 
-            return addDirectoryEntry(descriptor.inodeId, newInodeId, name);
+            directory.directories.add(new DirectoryDescriptor(newInodeId, name));
+            tryWriteFile(descriptor.inodeId, ByteBufferHelper.toBuffer(directory), 0);
         } finally {
             writeLock.unlock();
         }

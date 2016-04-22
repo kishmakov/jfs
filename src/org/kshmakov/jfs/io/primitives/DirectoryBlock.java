@@ -14,15 +14,15 @@ public class DirectoryBlock extends BlockBase {
     public final ArrayList<DirectoryEntry> entries = new ArrayList<DirectoryEntry>();
 
     public static DirectoryBlock emptyDirectoryBlock(int currentId, int parentId) throws JFSException {
-        DirectoryBlock block = new DirectoryBlock(Parameters.DATA_BLOCK_SIZE);
+        DirectoryBlock block = new DirectoryBlock();
         block.tryInsert(new DirectoryEntry(currentId, Parameters.EntryType.DIRECTORY, "."));
         block.tryInsert(new DirectoryEntry(parentId, Parameters.EntryType.DIRECTORY, ".."));
         return block;
     }
 
-    public DirectoryBlock(int size) {
-        super(size);
-        myUnusedSize = (short) (size - HEADER_SIZE);
+    public DirectoryBlock() {
+        super(0);
+        myUnusedSize = (short) (Parameters.DATA_BLOCK_SIZE - HEADER_SIZE);
     }
 
     public DirectoryBlock(ByteBuffer buffer) throws JFSException {
