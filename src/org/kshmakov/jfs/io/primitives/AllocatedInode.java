@@ -9,16 +9,17 @@ import java.nio.ByteOrder;
 public class AllocatedInode extends InodeBase {
 
     public final Parameters.EntryType type;
-    public int parentId;
+    public final int parentId;
     public int objectSize;
 
     public int directPointers[] = new int[Parameters.DIRECT_POINTERS_NUMBER];
     public int singlyIndirectPointer;
     public int doublyIndirectPointer;
 
-    public AllocatedInode(Parameters.EntryType type) {
+    public AllocatedInode(Parameters.EntryType type, int parentId) {
         super(0);
         this.type = type;
+        this.parentId = parentId;
     }
 
     public AllocatedInode(ByteBuffer buffer) {
@@ -26,8 +27,8 @@ public class AllocatedInode extends InodeBase {
         assert buffer.position() + Parameters.INODE_SIZE <= buffer.capacity();
 
         type = Parameters.byteToType(buffer.get());
-        parentId = buffer.get();
-        parentId = (parentId << 16) + buffer.getShort();
+        int hightPart = (int) buffer.get() & 0xFF;
+        parentId = (hightPart << 16) + (int) buffer.getShort() & 0xFFFF;
 
         objectSize = buffer.getInt();
         buffer.asIntBuffer().get(directPointers);

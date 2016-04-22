@@ -1,6 +1,5 @@
 package org.kshmakov.jfs.driver.tools;
 
-import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.io.Parameters;
 
 public class InodeHelper {

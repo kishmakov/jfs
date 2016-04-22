@@ -10,7 +10,8 @@ public class BlockBase {
 
     public BlockBase(ByteBuffer buffer) {
         bytes = new byte[Parameters.DATA_BLOCK_SIZE];
-        int maxLength = Math.min(bytes.length, buffer.capacity() - buffer.position());
+        buffer.rewind();
+        int maxLength = Math.min(bytes.length, buffer.capacity());
         buffer.get(bytes, 0, maxLength);
     }
 

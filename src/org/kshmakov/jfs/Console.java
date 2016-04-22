@@ -176,8 +176,6 @@ public class Console {
             myCurrentDir = myDriver.rootInode();
             myCurrentPath = new ArrayList<String>();
             myCurrentFile = "@" + command[1] + ":";
-        } catch (FileNotFoundException e) {
-            return "file " + command[1] + " not found";
         } catch (JFSBadFileException e) {
             return "file " + command[1] + " could not be mounted: " + e.getMessage();
         }

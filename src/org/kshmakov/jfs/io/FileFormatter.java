@@ -34,8 +34,7 @@ public class FileFormatter extends FileAccessorBase {
         resetInodes();
         resetBlocks();
 
-        AllocatedInode inode = new AllocatedInode(Parameters.EntryType.DIRECTORY);
-        inode.parentId = Parameters.ROOT_INODE_ID;
+        AllocatedInode inode = new AllocatedInode(Parameters.EntryType.DIRECTORY, Parameters.ROOT_INODE_ID);
         inode.objectSize = Parameters.DATA_BLOCK_SIZE;
         inode.directPointers[0] = 1;
         writeInode(inode, Parameters.ROOT_INODE_ID);

@@ -9,16 +9,12 @@ import org.kshmakov.jfs.driver.tools.InodeHelper;
 import org.kshmakov.jfs.io.*;
 import org.kshmakov.jfs.io.primitives.*;
 
-import java.io.FileNotFoundException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-
-import org.kshmakov.jfs.io.NameHelper;
 
 @ThreadSafe
 public final class FileSystemDriver {
@@ -133,13 +129,13 @@ public final class FileSystemDriver {
             myAccessor.writeInodeInt(size, inodeId, InodeOffsets.OBJECT_SIZE);
         }
 
-        for (int directId = 0; directId < Parameters.DIRECT_POINTERS_NUMBER; directId++) {
+        for (int directId = 0; directId < Parameters.DIRECT_POINTERS_NUMBER && buffer.hasRemaining(); ++directId) {
             if (offset >= Parameters.DATA_BLOCK_SIZE) {
                 offset -= Parameters.DATA_BLOCK_SIZE;
                 continue;
             }
 
-            int blockId = myAccessor.readInodeInt(inodeId, InodeOffsets.DIRECT_POINTERS[inodeId]);
+            int blockId = myAccessor.readInodeInt(inodeId, InodeOffsets.DIRECT_POINTERS[directId]);
             ByteBuffer blockBuffer = myAccessor.readBlock(blockId);
             blockBuffer.position(offset);
             offset = 0;
@@ -149,6 +145,8 @@ public final class FileSystemDriver {
         }
 
         // TODO: support doubly and triply indirect
+
+        assert !buffer.hasRemaining();
     }
 
     @GuardedBy("myInodesLocks")
@@ -203,12 +201,8 @@ public final class FileSystemDriver {
     }
 
     @GuardedBy("myInodesLocks")
-    private DirectoryDescriptor addDirectoryEntry(int inodeId, String name) throws JFSException {
+    private DirectoryDescriptor addDirectoryEntry(int inodeId, int newInodeId, String name) throws JFSException {
         Directory directory = getEntries(inodeId);
-        AllocatedInode newInode = new AllocatedInode(Parameters.EntryType.DIRECTORY);
-        newInode.parentId = inodeId;
-
-        int newInodeId = allocateInode(newInode);
         int newBlockId = allocateBlock(DirectoryBlock.emptyDirectoryBlock(newInodeId, inodeId));
         appendBlock(newInodeId, newBlockId);
 
@@ -253,7 +247,7 @@ public final class FileSystemDriver {
         return newDirectory;
     }
 
-    public FileSystemDriver(String name) throws FileNotFoundException, JFSException {
+    public FileSystemDriver(String name) throws JFSException {
         myAccessor = new FileAccessor(name);
         myInodesStack = new InodesStack(myAccessor);
         myBlocksStack = new BlocksStack(myAccessor);
@@ -284,7 +278,12 @@ public final class FileSystemDriver {
                 throw new JFSRefuseException(name + " is already in use");
             }
 
-            return addDirectoryEntry(descriptor.inodeId, name);
+            AllocatedInode newInode = new AllocatedInode(Parameters.EntryType.DIRECTORY, descriptor.inodeId);
+            int newInodeId = allocateInode(newInode);
+            DirectoryBlock newDirectory = DirectoryBlock.emptyDirectoryBlock(newInodeId, descriptor.inodeId);
+            tryWriteFile(newInodeId, newDirectory.toBuffer(), 0);
+
+            return addDirectoryEntry(descriptor.inodeId, newInodeId, name);
         } finally {
             writeLock.unlock();
         }
