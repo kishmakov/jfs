@@ -7,8 +7,10 @@ do
 
 
   if ! diff <(hexdump -C $base.jfs) <(hexdump -C refs/$base.jfs) >/dev/null 2>&1; then
-    echo "$base fail"
+    echo "$base failed"
+    echo "check: diff <(hexdump -C $base.jfs) <(hexdump -C refs/$base.jfs)"
+  else
+    rm $base.jfs
   fi
-  rm $base.jfs
 done
 

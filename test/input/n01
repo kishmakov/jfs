@@ -1,0 +1,4 @@
+create n01.jfs 100000
+format n01.jfs
+mount n01.jfs
+ls
