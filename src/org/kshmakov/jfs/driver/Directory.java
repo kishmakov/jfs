@@ -7,7 +7,6 @@ import org.kshmakov.jfs.io.primitives.DirectoryEntry;
 
 import java.util.ArrayList;
 
-// TODO: complete
 public class Directory {
     public ArrayList<DirectoryDescriptor> directories = new ArrayList<DirectoryDescriptor>();
     public ArrayList<FileDescriptor> files = new ArrayList<FileDescriptor>();

@@ -1,8 +1,5 @@
 # JFS
 
-TOCTTOU
-EAFP vs LBYL
-
 ## File System Description
 
 ### Principles
@@ -13,7 +10,7 @@ EAFP vs LBYL
 * data block size could vary in diapason 256B(?) — 16KB, must be multiple of 4
   bytes
 * numerations for inodes and data blocks start from 1; number 0 is meant to be NIL
-* inodes tree starts from the inode number 1
+* inodes tree always starts from the inode number 1
 * unallocated inodes and data blocks are linked into lists; pointers to the heads
   of these lists are stored in the header section
 

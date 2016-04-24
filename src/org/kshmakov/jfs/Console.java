@@ -29,11 +29,11 @@ public class Console {
         myUsages.put("create", "usage: create file_name file_size");
         myUsages.put("exit", "usage: exit");
         myUsages.put("format", "usage: format file_name");
-        myUsages.put("help", "usage: help\n       help command");
+        myUsages.put("help", "usage: help\n   or  help command");
         myUsages.put("ls", "usage: ls");
         myUsages.put("mkdir", "usage: mkdir directory_name");
         myUsages.put("mount", "usage: mount file_name");
-        myUsages.put("rm", "usage: rm file_name\n       rm -r directory_name");
+        myUsages.put("rm", "usage: rm file_name\n   or  rm -r directory_name");
         myUsages.put("umount", "usage: umount");
     }
 
@@ -215,8 +215,19 @@ public class Console {
     }
 
     private String removeEntry(String[] command) throws JFSException {
-        if (command.length < 2)
-            return "entry name is not provided\n" + myUsages.get(command[0]);
+        if (command.length != 2 || command.length != 3) {
+            return "invalid arguments\n" + myUsages.get(command[0]);
+        }
+
+        if (command.length == 3) {
+            if (command[1].equals("-r")) {
+                myDriver.tryRemoveDirectory(myCurrentDir, command[2]);
+            } else {
+                return "invalid arguments\n" + myUsages.get(command[0]);
+            }
+        } else {
+            myDriver.tryRemoveFile(myCurrentDir, command[1]);
+        }
 
         return "";
     }

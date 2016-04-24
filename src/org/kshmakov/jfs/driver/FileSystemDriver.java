@@ -174,7 +174,6 @@ public final class FileSystemDriver {
         return new DirectoryDescriptor(Parameters.ROOT_INODE_ID, "");
     }
 
-    @NotNull
     public void tryAddDirectory(DirectoryDescriptor descriptor, String name) throws JFSException {
         String resolution = NameHelper.inspect(name);
         if (!resolution.isEmpty()) {
@@ -196,6 +195,46 @@ public final class FileSystemDriver {
 
             directory.directories.add(new DirectoryDescriptor(newInodeId, name));
             tryWriteFile(descriptor.inodeId, ByteBufferHelper.toBuffer(directory), 0);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    public void tryRemoveDirectory(DirectoryDescriptor descriptor, String name) throws JFSException {
+        Lock writeLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].writeLock();
+        writeLock.lock();
+
+        try {
+            Directory directory = getEntries(descriptor.inodeId);
+            if (directory.getDirectory(name) == null) {
+                if (directory.getFile(name) != null) {
+                    // TODO: remove file here
+                    return;
+                }
+
+                throw new JFSRefuseException("cannot remove " + name + ": no such directory");
+            }
+            // TODO: remove directory here
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    public void tryRemoveFile(DirectoryDescriptor descriptor, String name) throws JFSException {
+        Lock writeLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].writeLock();
+        writeLock.lock();
+
+        try {
+            Directory directory = getEntries(descriptor.inodeId);
+            if (directory.getFile(name) == null) {
+                if (directory.getDirectory(name) != null) {
+                    throw new JFSRefuseException("cannot remove " + name + ": is a directory");
+                }
+
+                throw new JFSRefuseException("cannot remove " + name + ": no such file");
+            }
+
+            // TODO: remove directory here
         } finally {
             writeLock.unlock();
         }
