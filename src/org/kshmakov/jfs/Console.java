@@ -25,7 +25,7 @@ public class Console {
     static
     {
         myUsages = new HashMap<String, String>();
-        myUsages.put("cd", "usage: cd directory_name");
+        myUsages.put("cd", "usage: cd directory_name\n   or  cd");
         myUsages.put("create", "usage: create file_name file_size");
         myUsages.put("exit", "usage: exit");
         myUsages.put("format", "usage: format file_name");
@@ -57,8 +57,14 @@ public class Console {
     }
 
     private String changeDirectory(String[] command) throws JFSException {
-        if (command.length < 2) {
-            return "directory name is not provided\n" + myUsages.get(command[0]);
+        if (command.length != 1 && command.length != 2) {
+            return "invalid arguments\n" + myUsages.get(command[0]);
+        }
+
+        if (command.length == 1) {
+            myCurrentDir = myDriver.rootInode();
+            myCurrentPath.clear();
+            return "";
         }
 
         DirectoryDescriptor newDescriptor = null;
@@ -216,19 +222,24 @@ public class Console {
     }
 
     private String removeEntry(String[] command) throws JFSException {
-        if (command.length != 2 || command.length != 3) {
+        if (command.length != 2 && command.length != 3) {
             return "invalid arguments\n" + myUsages.get(command[0]);
         }
 
-        if (command.length == 3) {
-            if (command[1].equals("-r")) {
-                myDriver.tryRemoveDirectory(myCurrentDir, command[2]);
+        try {
+            if (command.length == 3) {
+                if (command[1].equals("-r")) {
+                    myDriver.tryRemoveDirectory(myCurrentDir, command[2]);
+                } else {
+                    return "invalid arguments\n" + myUsages.get(command[0]);
+                }
             } else {
-                return "invalid arguments\n" + myUsages.get(command[0]);
+                myDriver.tryRemoveFile(myCurrentDir, command[1]);
             }
-        } else {
-            myDriver.tryRemoveFile(myCurrentDir, command[1]);
+        } catch (JFSRefuseException e) {
+            return "cannot remove " + command[command.length - 1] + ": " + e.getMessage();
         }
+
 
         return "";
     }

@@ -225,11 +225,36 @@ public final class FileSystemDriver {
     }
 
     @GuardedBy("myInodesLocks")
-    private void removeFile(int inodeId, ArrayList<DirectoryEntry> entries, DirectoryEntry entry) throws JFSException {
+    private void removeFile(int inodeId, ArrayList<DirectoryEntry> siblings, DirectoryEntry entry) throws JFSException {
         assert entry.type == Parameters.EntryType.FILE;
+        siblings.removeIf(e -> e.equals(entry));
+        tryRewriteFile(inodeId, ByteBufferHelper.toBuffer(siblings));
         tryRewriteFile(entry.inodeId, ByteBuffer.allocate(0));
-        entries.removeIf(file -> file.equals(entry));
-        tryRewriteFile(inodeId, ByteBufferHelper.toBuffer(entries));
+        myInodesStack.push(entry.inodeId);
+    }
+
+    @GuardedBy("myInodesLocks")
+    private void removeDirectory(int inodeId, ArrayList<DirectoryEntry> siblings, DirectoryEntry entry) throws JFSException {
+        assert entry.type == Parameters.EntryType.DIRECTORY;
+        siblings.removeIf(e -> e.equals(entry));
+        tryRewriteFile(inodeId, ByteBufferHelper.toBuffer(siblings));
+
+        ArrayList<DirectoryEntry> entries = new ArrayList<DirectoryEntry>(1);
+        entries.add(entry);
+
+        while (!entries.isEmpty()) {
+            DirectoryEntry lastEntry = entries.remove(entries.size() - 1);
+            if (lastEntry.type == Parameters.EntryType.DIRECTORY) {
+                if (lastEntry.name.equals(".") || lastEntry.name.equals("..")) {
+                    continue;
+                }
+
+                entries.addAll(getEntries(lastEntry.inodeId));
+            }
+
+            tryRewriteFile(lastEntry.inodeId, ByteBuffer.allocate(0));
+            myInodesStack.push(lastEntry.inodeId);
+        }
     }
 
     @NotNull
@@ -259,20 +284,24 @@ public final class FileSystemDriver {
 
     public void tryRemoveDirectory(DirectoryDescriptor descriptor, String name) throws JFSException {
         refuseIf(name.equals(".") || name.equals(".."), "cannot remove system directory");
-        Lock writeLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].writeLock();
-        writeLock.lock();
+
+        for (ReadWriteLock lock : myInodesLocks) {
+            lock.writeLock().lock();
+        }
 
         try {
             ArrayList<DirectoryEntry> entries = getEntries(descriptor.inodeId);
             DirectoryEntry toRemove = EntriesHelper.find(entries, name);
-            refuseIf(toRemove == null, "cannot remove " + name + ": no such file or directory");
+            refuseIf(toRemove == null, "no such file or directory");
             if (toRemove.type == Parameters.EntryType.FILE) {
                 removeFile(descriptor.inodeId, entries, toRemove);
             } else {
-                // TODO: remove directory here
+                removeDirectory(descriptor.inodeId, entries, toRemove);
             }
         } finally {
-            writeLock.unlock();
+            for (ReadWriteLock lock : myInodesLocks) {
+                lock.writeLock().unlock();
+            }
         }
     }
 
@@ -283,8 +312,8 @@ public final class FileSystemDriver {
         try {
             ArrayList<DirectoryEntry> entries = getEntries(descriptor.inodeId);
             DirectoryEntry toRemove = EntriesHelper.find(entries, name);
-            refuseIf(toRemove == null, "cannot remove " + name + ": no such file");
-            refuseIf(toRemove.type == Parameters.EntryType.DIRECTORY, "cannot remove " + name + ": is a directory");
+            refuseIf(toRemove == null, "no such file");
+            refuseIf(toRemove.type == Parameters.EntryType.DIRECTORY, "is a directory");
             removeFile(descriptor.inodeId, entries, toRemove);
         } finally {
             writeLock.unlock();

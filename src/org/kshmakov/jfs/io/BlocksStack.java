@@ -22,11 +22,9 @@ public class BlocksStack {
     public int pop() throws JFSException {
         assert size() > 0;
         int resultId = myFirstUnallocatedId;
-
         myFirstUnallocatedId = myAccessor.readBlockInt(resultId);
         myAccessor.writeHeaderInt(myFirstUnallocatedId, HeaderOffsets.FIRST_UNALLOCATED_BLOCK_ID);
         myAccessor.writeHeaderInt(--myUnallocatedBlocks, HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS);
-
         return resultId;
     }
 

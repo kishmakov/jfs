@@ -43,9 +43,9 @@ Offset |Size     | Description
 
 ### Inode Layout
 
-Inode consists of 64 bytes. Inodes could allocated or unallocated.
+Inode consists of 64 bytes. Each inode could be either allocated or unallocated.
 
-Allocated inodes layout is as follows:
+Allocated inode layout is as follows:
 
 Offset |Size   | Description
 :-----:|:-----:|------------
@@ -67,7 +67,7 @@ Offset |Size   | Description
 56     |4      | Singly indirect pointer
 60     |4      | Doubly indirect pointer
 
-Unallocated inodes layout is as follows:
+Unallocated inode layout is as follows:
 
 Offset |Size   | Description
 :-----:|:-----:|------------
