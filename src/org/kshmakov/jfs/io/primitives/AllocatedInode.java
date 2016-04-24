@@ -1,6 +1,7 @@
 package org.kshmakov.jfs.io.primitives;
 
 import org.kshmakov.jfs.io.FileAccessor;
+import org.kshmakov.jfs.io.JFSBadFileException;
 import org.kshmakov.jfs.io.Parameters;
 
 import java.nio.ByteBuffer;
@@ -22,7 +23,7 @@ public class AllocatedInode extends InodeBase {
         this.parentId = parentId;
     }
 
-    public AllocatedInode(ByteBuffer buffer) {
+    public AllocatedInode(ByteBuffer buffer) throws JFSBadFileException {
         super(0);
         assert buffer.position() + Parameters.INODE_SIZE <= buffer.capacity();
 

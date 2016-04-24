@@ -18,6 +18,7 @@ public interface Parameters {
     int MAX_FILE_SIZE = DATA_BLOCK_SIZE * DIRECT_POINTERS_NUMBER; // TODO: support double and triple pointers
 
     enum EntryType {
+        UNALLOCATED,
         DIRECTORY,
         FILE
     }
@@ -26,7 +27,12 @@ public interface Parameters {
         return (byte) type.ordinal();
     }
 
-    static EntryType byteToType(byte typeByte) {
-        return typeByte == 0 ? EntryType.DIRECTORY : EntryType.FILE;
+    static EntryType byteToType(byte typeByte) throws JFSBadFileException {
+        switch (typeByte) {
+            case 0: return EntryType.UNALLOCATED;
+            case 1: return EntryType.DIRECTORY;
+            case 2: return EntryType.FILE;
+        }
+        throw new JFSBadFileException("unsupported type code");
     }
 }
