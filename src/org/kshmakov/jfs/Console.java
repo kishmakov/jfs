@@ -13,12 +13,29 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 
 public class Console {
     private FileSystemDriver myDriver = null;
     private String myCurrentFile = "";
     private ArrayList<String> myCurrentPath = new ArrayList<String>();
     private DirectoryDescriptor myCurrentDir;
+
+    private static final HashMap<String, String> myUsages;
+    static
+    {
+        myUsages = new HashMap<String, String>();
+        myUsages.put("cd", "usage: cd directory_name");
+        myUsages.put("create", "usage: create file_name file_size");
+        myUsages.put("exit", "usage: exit");
+        myUsages.put("format", "usage: format file_name");
+        myUsages.put("help", "usage: help\n       help command");
+        myUsages.put("ls", "usage: ls");
+        myUsages.put("mkdir", "usage: mkdir directory_name");
+        myUsages.put("mount", "usage: mount file_name");
+        myUsages.put("rm", "usage: rm file_name\n       rm -r directory_name");
+        myUsages.put("umount", "usage: umount");
+    }
 
     public String prefix() {
         StringBuilder builder = new StringBuilder();
@@ -40,10 +57,8 @@ public class Console {
     }
 
     private String changeDirectory(String[] command) throws JFSException {
-        String usage = "usage: cd dir_name";
-
         if (command.length < 2) {
-            return "directory name is not provided, " + usage;
+            return "directory name is not provided\n" + myUsages.get(command[0]);
         }
 
         Directory directory = myDriver.getEntries(myCurrentDir);
@@ -72,14 +87,12 @@ public class Console {
     }
 
     private String crateFile(String[] command) throws JFSException {
-        String usage = "usage: create file_name file_size";
-
         if (command.length < 2) {
-            return "file name is not provided, " + usage;
+            return "file name is not provided\n " + myUsages.get(command[0]);
         }
 
         if (command.length < 3) {
-            return "file size is not provided, " + usage;
+            return "file size is not provided\n" + myUsages.get(command[0]);
         }
 
         int size;
@@ -106,10 +119,8 @@ public class Console {
     }
 
     private String formatFile(String[] command) throws JFSException {
-        String usage = "usage: format file_name";
-
         if (command.length < 2) {
-            return "file name is not provided, " + usage;
+            return "file name is not provided\n" + myUsages.get(command[0]);
         }
 
         try {
@@ -120,6 +131,27 @@ public class Console {
         }
 
         return command[1] + " formatted";
+    }
+
+    private String showHelp(String[] command) {
+        StringBuilder builder = new StringBuilder();
+
+        if (command.length > 2) {
+            return myUsages.get(command[0]);
+        }
+
+        if (command.length == 2) {
+            return myUsages.get(command[1]) == null
+                    ? "unsupported command " + command[1]
+                    : myUsages.get(command[1]);
+        }
+
+        for (String key : myUsages.keySet()) {
+            builder.append("--- " + key + " ---\n");
+            builder.append(myUsages.get(key) + "\n");
+        }
+
+        return builder.toString();
     }
 
     private String listDirectory() throws JFSException {
@@ -151,7 +183,7 @@ public class Console {
         }
 
         if (command.length < 2) {
-            return "directory name is not provided, usage: mkdir directory_name";
+            return "directory name is not provided\n" + myUsages.get(command[0]);
         }
 
         try {
@@ -165,7 +197,7 @@ public class Console {
 
     private String mountFile(String[] command) throws JFSException {
         if (command.length < 2)
-            return "file name is not provided";
+            return "file name is not provided\n" + myUsages.get(command[0]);
 
         if (myDriver != null)
             umountFile();
@@ -178,6 +210,13 @@ public class Console {
         } catch (JFSBadFileException e) {
             return "file " + command[1] + " could not be mounted: " + e.getMessage();
         }
+
+        return "";
+    }
+
+    private String removeEntry(String[] command) throws JFSException {
+        if (command.length < 2)
+            return "entry name is not provided\n" + myUsages.get(command[0]);
 
         return "";
     }
@@ -201,12 +240,16 @@ public class Console {
                     return crateFile(command);
                 case "format":
                     return formatFile(command);
+                case "help":
+                    return showHelp(command);
                 case "ls":
                     return listDirectory();
                 case "mkdir":
                     return makeDirectory(command);
                 case "mount":
                     return mountFile(command);
+                case "rm":
+                    return removeEntry(command);
                 case "umount":
                     return umountFile();
             }
