@@ -44,8 +44,8 @@ abstract public class FileAccessorBase {
             myChannel = myFile.getChannel();
             fileSize = myChannel.size();
 
-            if (fileSize < Parameters.MIN_SIZE || fileSize > Parameters.MAX_SIZE) {
-                String range = "[" + Long.toString(Parameters.MIN_SIZE) + ", " + Long.toString(Parameters.MAX_SIZE) + "]";
+            if (fileSize < Parameters.MIN_FS_SIZE || fileSize > Parameters.MAX_FS_SIZE) {
+                String range = "[" + Long.toString(Parameters.MIN_FS_SIZE) + ", " + Long.toString(Parameters.MAX_FS_SIZE) + "]";
                 throw new JFSBadFileException("file size of " + fileName + " is not in range " + range);
             }
 

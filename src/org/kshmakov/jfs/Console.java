@@ -103,8 +103,8 @@ public class Console {
             return "bad size description provided";
         }
 
-        if (size < Parameters.MIN_SIZE || size > Parameters.MAX_SIZE) {
-            String range = "[" + Long.toString(Parameters.MIN_SIZE) + ", " + Long.toString(Parameters.MAX_SIZE) + "]";
+        if (size < Parameters.MIN_FS_SIZE || size > Parameters.MAX_FS_SIZE) {
+            String range = "[" + Long.toString(Parameters.MIN_FS_SIZE) + ", " + Long.toString(Parameters.MAX_FS_SIZE) + "]";
             throw new JFSBadFileException("requested size is not in range " + range);
         }
 

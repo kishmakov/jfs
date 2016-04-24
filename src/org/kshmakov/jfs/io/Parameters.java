@@ -5,8 +5,8 @@ public interface Parameters {
     short DATA_BLOCK_SIZE = 0x1000;
     short INODE_SIZE = 64;
 
-    long MIN_SIZE = HEADER_SIZE + DATA_BLOCK_SIZE + INODE_SIZE;
-    long MAX_SIZE = Integer.MAX_VALUE - DATA_BLOCK_SIZE;
+    long MIN_FS_SIZE = HEADER_SIZE + DATA_BLOCK_SIZE + INODE_SIZE;
+    long MAX_FS_SIZE = Integer.MAX_VALUE - DATA_BLOCK_SIZE;
 
     int MAGIC_NUMBER = 0xAABBCCDD;
 
@@ -14,6 +14,8 @@ public interface Parameters {
 
     int ROOT_INODE_ID = 1;
     int DIRECT_POINTERS_NUMBER = 12;
+
+    int MAX_FILE_SIZE = DATA_BLOCK_SIZE * DIRECT_POINTERS_NUMBER; // TODO: support double and triple pointers
 
     enum EntryType {
         DIRECTORY,

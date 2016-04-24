@@ -29,6 +29,12 @@ public final class FileSystemDriver {
     @GuardedBy("myHeaderLock")
     private final BlocksStack myBlocksStack;
 
+    private static void refuseIf(boolean condition, String message) throws JFSRefuseException {
+        if (condition) {
+            throw new JFSRefuseException(message);
+        }
+    }
+
     public FileSystemDriver(String name) throws JFSException {
         myAccessor = new FileAccessor(name);
         myInodesStack = new InodesStack(myAccessor);
@@ -39,16 +45,12 @@ public final class FileSystemDriver {
         }
     }
 
-    @GuardedBy("myInodesLocks")
     private int allocateInode(InodeBase inode) throws JFSException {
         int inodeId;
 
         myHeaderLock.lock();
         try {
-            if (myInodesStack.empty()) {
-                throw new JFSRefuseException("no unallocated inodes left");
-            }
-
+            refuseIf(myInodesStack.empty(), "no unallocated inodes left");
             inodeId = myInodesStack.pop();
         } finally {
             myHeaderLock.unlock();
@@ -64,10 +66,7 @@ public final class FileSystemDriver {
         if (amount > 0) {
             myHeaderLock.lock();
             try {
-                if (myBlocksStack.size() < amount) {
-                    throw new JFSRefuseException("not enough unallocated blocks for requested operation");
-                }
-
+                refuseIf(myBlocksStack.size() < amount, "not enough unallocated blocks for requested operation");
                 while (amount-- > 0) {
                     result.add(myBlocksStack.pop());
                 }
@@ -79,30 +78,69 @@ public final class FileSystemDriver {
         return result;
     }
 
+    private void freeBlocks(ArrayList<Integer> ids) throws JFSException {
+        if (ids.isEmpty()) {
+            return;
+        }
+
+        myHeaderLock.lock();
+        try {
+            for (int id : ids) {
+                myBlocksStack.push(id);
+            }
+        } finally {
+            myHeaderLock.unlock();
+        }
+    }
+
     @GuardedBy("myInodesLocks")
     private void appendBlocks(int inodeId, ArrayList<Integer> newBlocksIds) throws JFSException {
         final int size = myAccessor.readInodeInt(inodeId, InodeOffsets.OBJECT_SIZE);
-        int currentOffset = 0;
 
-        for (int directId = 0; directId < Parameters.DIRECT_POINTERS_NUMBER && !newBlocksIds.isEmpty(); ++directId) {
-            if (currentOffset < size) {
-                currentOffset += Parameters.DATA_BLOCK_SIZE;
-                continue;
-            }
+        int firstId = InodeHelper.blocksForSize(size);
+        int lastId = firstId + newBlocksIds.size() - 1;
+        assert lastId < Parameters.DIRECT_POINTERS_NUMBER;
+
+        for (int directId = firstId; directId <= lastId; ++directId) {
             int blockId = newBlocksIds.remove(newBlocksIds.size() - 1);
             myAccessor.writeInodeInt(blockId, inodeId, InodeOffsets.DIRECT_POINTERS[directId]);
         }
 
-        if (newBlocksIds.isEmpty()) {
-            return;
-        }
-
-        // TODO: support doubly and triply indirect
+        myAccessor.writeInodeInt((lastId + 1) * Parameters.DATA_BLOCK_SIZE, inodeId, InodeOffsets.OBJECT_SIZE);
         assert newBlocksIds.isEmpty();
+        // TODO: support doubly and triply indirect
     }
 
     @GuardedBy("myInodesLocks")
-    private void writeFile(int inodeId, ByteBuffer buffer, int offset) throws JFSException {
+    private ArrayList<Integer> subtractBlocks(int inodeId, int blocksNumber) throws JFSException {
+        final int size = myAccessor.readInodeInt(inodeId, InodeOffsets.OBJECT_SIZE);
+        int lastId = InodeHelper.blocksForSize(size) - 1;
+        int firstId = lastId - blocksNumber + 1;
+        assert firstId >= 0 && lastId < Parameters.DIRECT_POINTERS_NUMBER;
+
+        ArrayList<Integer> result = new ArrayList<Integer>(blocksNumber);
+        for (int directId = firstId; directId <= lastId; ++directId) {
+            result.add(myAccessor.readInodeInt(inodeId, InodeOffsets.DIRECT_POINTERS[directId]));
+            myAccessor.writeInodeInt(0, inodeId, InodeOffsets.DIRECT_POINTERS[directId]);
+        }
+
+        myAccessor.writeInodeInt(firstId * Parameters.DATA_BLOCK_SIZE, inodeId, InodeOffsets.OBJECT_SIZE);
+        return result;
+        // TODO: support doubly and triply indirect
+    }
+
+    @GuardedBy("myInodesLocks")
+    private void growInode(int inodeId, int blocksNumber) throws JFSException {
+        appendBlocks(inodeId, allocateBlocks(blocksNumber));
+    }
+
+    @GuardedBy("myInodesLocks")
+    private void truncateInode(int inodeId, int blocksNumber) throws JFSException {
+        freeBlocks(subtractBlocks(inodeId, blocksNumber));
+    }
+
+    @GuardedBy("myInodesLocks")
+    private void writeIntoFile(int inodeId, ByteBuffer buffer, int offset) throws JFSException {
         buffer.rewind();
         int size = myAccessor.readInodeInt(inodeId, InodeOffsets.OBJECT_SIZE);
         if (size < offset + buffer.capacity()) {
@@ -126,22 +164,45 @@ public final class FileSystemDriver {
         }
 
         // TODO: support doubly and triply indirect
-
         assert !buffer.hasRemaining();
     }
 
     @GuardedBy("myInodesLocks")
-    private void tryWriteFile(int inodeId, ByteBuffer buffer, int offset) throws JFSException {
+    private void tryWriteIntoFile(int inodeId, ByteBuffer buffer, int offset) throws JFSException {
         int currentSize = myAccessor.readInodeInt(inodeId, InodeOffsets.OBJECT_SIZE);
 
-        if (currentSize < offset) {
-            throw new JFSRefuseException("requested offset is bigger than file size");
+        refuseIf(currentSize < offset, "requested offset is bigger than file size");
+        refuseIf(offset + (long) buffer.capacity() > Parameters.MAX_FILE_SIZE, "operation will produce too big file");
+
+        int newSize = Math.max(currentSize, offset + buffer.capacity());
+
+        int blocksHave = InodeHelper.blocksForSize(currentSize);
+        int blocksNeed = InodeHelper.blocksForSize(newSize);
+
+        if (blocksNeed > blocksHave) {
+            growInode(inodeId, blocksNeed - blocksHave);
         }
 
-        int newBlocksNeeded = InodeHelper.newBlocksNeeded(currentSize, offset, buffer.capacity());
-        ArrayList<Integer> newBlocksIds = allocateBlocks(newBlocksNeeded);
-        appendBlocks(inodeId, newBlocksIds);
-        writeFile(inodeId, buffer, offset);
+        writeIntoFile(inodeId, buffer, offset);
+    }
+
+    @GuardedBy("myInodesLocks")
+    private void tryRewriteFile(int inodeId, ByteBuffer buffer) throws JFSException {
+        int currentSize = myAccessor.readInodeInt(inodeId, InodeOffsets.OBJECT_SIZE);
+        int newSize = buffer.capacity();
+
+        refuseIf(newSize > Parameters.MAX_FILE_SIZE, "operation will produce too big file");
+
+        int blocksHave = InodeHelper.blocksForSize(currentSize);
+        int blocksNeed = InodeHelper.blocksForSize(newSize);
+
+        if (blocksNeed > blocksHave) {
+            growInode(inodeId, blocksNeed - blocksHave);
+        } else if (blocksNeed < blocksHave) {
+            truncateInode(inodeId, blocksHave - blocksNeed);
+        }
+
+        writeIntoFile(inodeId, buffer, 0);
     }
 
     @NotNull
@@ -169,6 +230,15 @@ public final class FileSystemDriver {
         return directory;
     }
 
+    @GuardedBy("myInodesLocks")
+    private void removeFile(int inodeId, Directory directory, String name) throws JFSException {
+        FileDescriptor descriptor = directory.getFile(name);
+        assert descriptor != null;
+        tryRewriteFile(descriptor.inodeId, ByteBuffer.allocate(0));
+        directory.files.removeIf(file -> file.name.equals(name));
+        tryRewriteFile(inodeId, ByteBufferHelper.toBuffer(directory));
+    }
+
     @NotNull
     public DirectoryDescriptor rootInode() {
         return new DirectoryDescriptor(Parameters.ROOT_INODE_ID, "");
@@ -176,31 +246,26 @@ public final class FileSystemDriver {
 
     public void tryAddDirectory(DirectoryDescriptor descriptor, String name) throws JFSException {
         String resolution = NameHelper.inspect(name);
-        if (!resolution.isEmpty()) {
-            throw new JFSRefuseException(resolution);
-        }
+        refuseIf(!resolution.isEmpty(), resolution);
 
         Lock writeLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].writeLock();
         writeLock.lock();
 
         try {
             Directory directory = getEntries(descriptor.inodeId);
-            if (directory.getDirectory(name) != null || directory.getFile(name) != null) {
-                throw new JFSRefuseException(name + " is already in use");
-            }
-
+            refuseIf(directory.getDirectory(name) != null || directory.getFile(name) != null, name + " is already in use");
             int newInodeId = allocateInode(new AllocatedInode(Parameters.EntryType.DIRECTORY, descriptor.inodeId));
             DirectoryBlock newDirectory = DirectoryBlock.emptyDirectoryBlock(newInodeId, descriptor.inodeId);
-            tryWriteFile(newInodeId, newDirectory.toBuffer(), 0);
-
+            tryRewriteFile(newInodeId, newDirectory.toBuffer());
             directory.directories.add(new DirectoryDescriptor(newInodeId, name));
-            tryWriteFile(descriptor.inodeId, ByteBufferHelper.toBuffer(directory), 0);
+            tryRewriteFile(descriptor.inodeId, ByteBufferHelper.toBuffer(directory));
         } finally {
             writeLock.unlock();
         }
     }
 
     public void tryRemoveDirectory(DirectoryDescriptor descriptor, String name) throws JFSException {
+        refuseIf(name.equals(".") || name.equals(".."), "cannot remove system directory");
         Lock writeLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].writeLock();
         writeLock.lock();
 
@@ -208,7 +273,7 @@ public final class FileSystemDriver {
             Directory directory = getEntries(descriptor.inodeId);
             if (directory.getDirectory(name) == null) {
                 if (directory.getFile(name) != null) {
-                    // TODO: remove file here
+                    removeFile(descriptor.inodeId, directory, name);
                     return;
                 }
 
@@ -227,14 +292,11 @@ public final class FileSystemDriver {
         try {
             Directory directory = getEntries(descriptor.inodeId);
             if (directory.getFile(name) == null) {
-                if (directory.getDirectory(name) != null) {
-                    throw new JFSRefuseException("cannot remove " + name + ": is a directory");
-                }
-
+                refuseIf(directory.getDirectory(name) != null, "cannot remove " + name + ": is a directory");
                 throw new JFSRefuseException("cannot remove " + name + ": no such file");
             }
 
-            // TODO: remove directory here
+            removeFile(descriptor.inodeId, directory, name);
         } finally {
             writeLock.unlock();
         }
