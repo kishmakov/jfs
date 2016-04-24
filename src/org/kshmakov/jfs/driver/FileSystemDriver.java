@@ -5,6 +5,7 @@ import net.jcip.annotations.GuardedBy;
 import net.jcip.annotations.ThreadSafe;
 import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.driver.tools.ByteBufferHelper;
+import org.kshmakov.jfs.driver.tools.EntriesHelper;
 import org.kshmakov.jfs.driver.tools.InodeHelper;
 import org.kshmakov.jfs.io.*;
 import org.kshmakov.jfs.io.primitives.*;
@@ -207,41 +208,33 @@ public final class FileSystemDriver {
 
     @NotNull
     @GuardedBy("myInodesLocks")
-    private Directory getEntries(int inodeId) throws JFSException {
+    private ArrayList<DirectoryEntry> getEntries(int inodeId) throws JFSException {
+        assert (byte) (myAccessor.readInodeInt(inodeId, InodeOffsets.INODE_DESCRIPTION) >> 24) ==
+                Parameters.typeToByte(Parameters.EntryType.DIRECTORY);
         AllocatedInode inode = new AllocatedInode(myAccessor.readInode(inodeId));
-        Directory directory = new Directory();
+        ArrayList<DirectoryEntry> result = new ArrayList<DirectoryEntry>();
 
         for (int blockId : inode.directPointers) {
-            if (blockId == 0)
-                continue;
-
-            DirectoryBlock block = new DirectoryBlock(myAccessor.readBlock(blockId));
-
-            for (DirectoryEntry entry : block.entries) {
-                if (entry.type == Parameters.EntryType.DIRECTORY) {
-                    directory.directories.add(new DirectoryDescriptor(entry.inodeId, entry.name));
-                } else {
-                    directory.files.add(new FileDescriptor(entry.inodeId, entry.name));
-                }
+            if (blockId != 0) {
+                result.addAll(new DirectoryBlock(myAccessor.readBlock(blockId)).entries);
             }
         }
 
         // TODO: indirect blocks
-        return directory;
+        return result;
     }
 
     @GuardedBy("myInodesLocks")
-    private void removeFile(int inodeId, Directory directory, String name) throws JFSException {
-        FileDescriptor descriptor = directory.getFile(name);
-        assert descriptor != null;
-        tryRewriteFile(descriptor.inodeId, ByteBuffer.allocate(0));
-        directory.files.removeIf(file -> file.name.equals(name));
-        tryRewriteFile(inodeId, ByteBufferHelper.toBuffer(directory));
+    private void removeFile(int inodeId, ArrayList<DirectoryEntry> entries, DirectoryEntry entry) throws JFSException {
+        assert entry.type == Parameters.EntryType.FILE;
+        tryRewriteFile(entry.inodeId, ByteBuffer.allocate(0));
+        entries.removeIf(file -> file.equals(entry));
+        tryRewriteFile(inodeId, ByteBufferHelper.toBuffer(entries));
     }
 
     @NotNull
     public DirectoryDescriptor rootInode() {
-        return new DirectoryDescriptor(Parameters.ROOT_INODE_ID, "");
+        return new DirectoryDescriptor(Parameters.ROOT_INODE_ID);
     }
 
     public void tryAddDirectory(DirectoryDescriptor descriptor, String name) throws JFSException {
@@ -252,13 +245,14 @@ public final class FileSystemDriver {
         writeLock.lock();
 
         try {
-            Directory directory = getEntries(descriptor.inodeId);
-            refuseIf(directory.getDirectory(name) != null || directory.getFile(name) != null, name + " is already in use");
+            ArrayList<DirectoryEntry> entries = getEntries(descriptor.inodeId);
+            DirectoryEntry sameNameEntry = EntriesHelper.find(entries, name);
+            refuseIf(sameNameEntry != null, name + " is already in use");
             int newInodeId = allocateInode(new AllocatedInode(Parameters.EntryType.DIRECTORY, descriptor.inodeId));
             DirectoryBlock newDirectory = DirectoryBlock.emptyDirectoryBlock(newInodeId, descriptor.inodeId);
             tryRewriteFile(newInodeId, newDirectory.toBuffer());
-            directory.directories.add(new DirectoryDescriptor(newInodeId, name));
-            tryRewriteFile(descriptor.inodeId, ByteBufferHelper.toBuffer(directory));
+            entries.add(new DirectoryEntry(newInodeId, Parameters.EntryType.DIRECTORY, name));
+            tryRewriteFile(descriptor.inodeId, ByteBufferHelper.toBuffer(entries));
         } finally {
             writeLock.unlock();
         }
@@ -270,16 +264,14 @@ public final class FileSystemDriver {
         writeLock.lock();
 
         try {
-            Directory directory = getEntries(descriptor.inodeId);
-            if (directory.getDirectory(name) == null) {
-                if (directory.getFile(name) != null) {
-                    removeFile(descriptor.inodeId, directory, name);
-                    return;
-                }
-
-                throw new JFSRefuseException("cannot remove " + name + ": no such directory");
+            ArrayList<DirectoryEntry> entries = getEntries(descriptor.inodeId);
+            DirectoryEntry toRemove = EntriesHelper.find(entries, name);
+            refuseIf(toRemove == null, "cannot remove " + name + ": no such file or directory");
+            if (toRemove.type == Parameters.EntryType.FILE) {
+                removeFile(descriptor.inodeId, entries, toRemove);
+            } else {
+                // TODO: remove directory here
             }
-            // TODO: remove directory here
         } finally {
             writeLock.unlock();
         }
@@ -290,25 +282,51 @@ public final class FileSystemDriver {
         writeLock.lock();
 
         try {
-            Directory directory = getEntries(descriptor.inodeId);
-            if (directory.getFile(name) == null) {
-                refuseIf(directory.getDirectory(name) != null, "cannot remove " + name + ": is a directory");
-                throw new JFSRefuseException("cannot remove " + name + ": no such file");
-            }
-
-            removeFile(descriptor.inodeId, directory, name);
+            ArrayList<DirectoryEntry> entries = getEntries(descriptor.inodeId);
+            DirectoryEntry toRemove = EntriesHelper.find(entries, name);
+            refuseIf(toRemove == null, "cannot remove " + name + ": no such file");
+            refuseIf(toRemove.type == Parameters.EntryType.DIRECTORY, "cannot remove " + name + ": is a directory");
+            removeFile(descriptor.inodeId, entries, toRemove);
         } finally {
             writeLock.unlock();
         }
     }
 
     @NotNull
-    public Directory getEntries(DirectoryDescriptor descriptor) throws JFSException {
+    public ArrayList<NamedDirectoryDescriptor> getDirectories(DirectoryDescriptor descriptor) throws JFSException {
         Lock readLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].readLock();
         readLock.lock();
 
         try {
-            return getEntries(descriptor.inodeId);
+            ArrayList<NamedDirectoryDescriptor> result = new ArrayList<NamedDirectoryDescriptor>();
+            ArrayList<DirectoryEntry> entries = getEntries(descriptor.inodeId);
+            entries.forEach(entry -> {
+                if (entry.type == Parameters.EntryType.DIRECTORY) {
+                    result.add(new NamedDirectoryDescriptor(new DirectoryDescriptor(entry.inodeId), entry.name));
+                }
+            });
+
+            return result;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @NotNull
+    public ArrayList<NamedFileDescriptor> getFiles(DirectoryDescriptor descriptor) throws JFSException {
+        Lock readLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].readLock();
+        readLock.lock();
+
+        try {
+            ArrayList<NamedFileDescriptor> result = new ArrayList<NamedFileDescriptor>();
+            ArrayList<DirectoryEntry> entries = getEntries(descriptor.inodeId);
+            entries.forEach(entry -> {
+                if (entry.type == Parameters.EntryType.FILE) {
+                    result.add(new NamedFileDescriptor(new FileDescriptor(entry.inodeId), entry.name));
+                }
+            });
+
+            return result;
         } finally {
             readLock.unlock();
         }

@@ -1,7 +1,6 @@
 package org.kshmakov.jfs.driver.tools;
 
 import org.kshmakov.jfs.JFSException;
-import org.kshmakov.jfs.driver.Directory;
 import org.kshmakov.jfs.io.primitives.DirectoryBlock;
 import org.kshmakov.jfs.io.primitives.DirectoryEntry;
 
@@ -16,11 +15,11 @@ public interface ByteBufferHelper {
         return result;
     }
 
-    static ByteBuffer toBuffer(Directory directory) throws JFSException {
+    static ByteBuffer toBuffer(ArrayList<DirectoryEntry> entries) throws JFSException {
         ArrayList<ByteBuffer> buffers = new ArrayList<ByteBuffer>();
 
         DirectoryBlock block = new DirectoryBlock();
-        for (DirectoryEntry entry : directory.getEntries()) {
+        for (DirectoryEntry entry : entries) {
             if (!block.tryInsert(entry)) {
                 buffers.add(block.toBuffer());
                 block = new DirectoryBlock();

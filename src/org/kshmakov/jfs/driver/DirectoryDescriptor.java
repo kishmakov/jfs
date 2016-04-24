@@ -1,12 +1,10 @@
 package org.kshmakov.jfs.driver;
 
-public class DirectoryDescriptor {
+// details are supposed to be inaccessible from outside of the package
+final public class DirectoryDescriptor {
+    final int inodeId;
 
-    public final int inodeId;
-    public final String name;
-
-    DirectoryDescriptor(int inodeId, String name) {
+    DirectoryDescriptor(int inodeId) {
         this.inodeId = inodeId;
-        this.name = name;
     }
 }

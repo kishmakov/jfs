@@ -1,9 +1,9 @@
 package org.kshmakov.jfs;
 
-import org.kshmakov.jfs.driver.Directory;
 import org.kshmakov.jfs.driver.DirectoryDescriptor;
 import org.kshmakov.jfs.driver.FileSystemDriver;
 import org.kshmakov.jfs.driver.JFSRefuseException;
+import org.kshmakov.jfs.driver.NamedDirectoryDescriptor;
 import org.kshmakov.jfs.io.FileFormatter;
 import org.kshmakov.jfs.io.JFSBadFileException;
 import org.kshmakov.jfs.io.NameHelper;
@@ -61,15 +61,18 @@ public class Console {
             return "directory name is not provided\n" + myUsages.get(command[0]);
         }
 
-        Directory directory = myDriver.getEntries(myCurrentDir);
+        DirectoryDescriptor newDescriptor = null;
+        for (NamedDirectoryDescriptor namedDescriptor : myDriver.getDirectories(myCurrentDir)) {
+            if (namedDescriptor.name.equals(command[1])) {
+                newDescriptor = namedDescriptor.descriptor;
+            }
+        }
 
-        DirectoryDescriptor newDir = directory.getDirectory(command[1]);
-
-        if (newDir == null) {
+        if (newDescriptor  == null) {
             return "no such directory";
         }
 
-        myCurrentDir = newDir;
+        myCurrentDir = newDescriptor;
 
         switch (command[1]) {
             case ".":
@@ -159,11 +162,9 @@ public class Console {
             return "file system is not mounted";
         }
 
-        Directory directory = myDriver.getEntries(myCurrentDir);
-        ArrayList<String> listItems = new ArrayList<String>(directory.entriesNumber());
-
-        directory.directories.forEach(item -> listItems.add("d: " + item.name));
-        directory.files.forEach(item -> listItems.add("f: " + item.name));
+        ArrayList<String> listItems = new ArrayList<String>();
+        myDriver.getDirectories(myCurrentDir).forEach(item -> listItems.add("d: " + item.name));
+        myDriver.getFiles(myCurrentDir).forEach(item -> listItems.add("f: " + item.name));
 
         Collections.sort(listItems);
 
