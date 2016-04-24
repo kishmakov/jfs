@@ -7,12 +7,14 @@
 * utf-8 is used for names
 * big-endian order is used
 * all sizes are denominated in bytes
-* data block size could vary in diapason 256B(?) — 16KB, must be multiple of 4
-  bytes
+* data block size is fixed to be 4KB
 * numerations for inodes and data blocks start from 1; number 0 is meant to be NIL
 * inodes tree always starts from the inode number 1
 * unallocated inodes and data blocks are linked into lists; pointers to the heads
   of these lists are stored in the header section
+* maximal underlying file size is 2GB
+* maximal size of file hosted by JFS is supposed to be limited only by underlying file size
+* maximal possible amount of inodes is 2^24 = 16M, it fits underlying files of sizes up to 2GB
 
 ### File Partition Overview
 
@@ -41,12 +43,14 @@ Offset |Size     | Description
 
 ### Inode Layout
 
-Inode consists of 64 bytes.
+Inode consists of 64 bytes. Inodes could allocated or unallocated.
+
+Allocated inodes layout is as follows:
 
 Offset |Size   | Description
 :-----:|:-----:|------------
-0      |1      | inode object type: `0x00` — directory, `0x01` — file
-1      |3      | parent inode id (up to 16M inodes)
+0      |1      | inode object type: `0x01` — directory, `0x02` — file
+1      |3      | parent inode id
 4      |4      | corresponding object size
 8      |4      | id of data block #0
 12     |4      | id of data block #1
@@ -62,6 +66,15 @@ Offset |Size   | Description
 52     |4      | id of data block #11
 56     |4      | Singly indirect pointer
 60     |4      | Doubly indirect pointer
+
+Unallocated inodes layout is as follows:
+
+Offset |Size   | Description
+:-----:|:-----:|------------
+0      |1      | unallocated inode signature `0x00`
+1      |3      | next unallocated inode id
+4      |60     | unused space
+
 
 ### Directory Organisation
 

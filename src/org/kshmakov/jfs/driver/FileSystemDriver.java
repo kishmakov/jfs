@@ -246,8 +246,7 @@ public final class FileSystemDriver {
 
         try {
             ArrayList<DirectoryEntry> entries = getEntries(descriptor.inodeId);
-            DirectoryEntry sameNameEntry = EntriesHelper.find(entries, name);
-            refuseIf(sameNameEntry != null, name + " is already in use");
+            refuseIf(EntriesHelper.find(entries, name) != null, name + " is already in use");
             int newInodeId = allocateInode(new AllocatedInode(Parameters.EntryType.DIRECTORY, descriptor.inodeId));
             DirectoryBlock newDirectory = DirectoryBlock.emptyDirectoryBlock(newInodeId, descriptor.inodeId);
             tryRewriteFile(newInodeId, newDirectory.toBuffer());
