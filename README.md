@@ -18,7 +18,7 @@
 
 ### File Partition Overview
 
-File is partitioned into 3 subsequently allocated sections:
+Underlying file is partitioned into 3 subsequently allocated sections:
 
 1. Header
 2. Inode Table
@@ -26,7 +26,7 @@ File is partitioned into 3 subsequently allocated sections:
 
 #### Header Layout
 
-Header has fixed size 32 bytes. It's layout is as follows:
+Header has fixed size of 32 bytes. It's layout is as follows:
 
 Offset |Size     | Description
 :-----:|:-------:|------------
@@ -78,13 +78,13 @@ Offset |Size   | Description
 
 ### Directory Organisation
 
-Directories are supposed to be a specific files, holding linked lists of pairs
+Directories are supposed to be a specific files, holding lists of pairs
 `{inode number, myName}`. Implementation is motivated by [ext2 directory organisation](http://www.nongnu.org/ext2-doc/ext2.html#DIRECTORY).
 
 In contrast with ext2 organization, we don't store per entry size. This is
-motivated by the decision to rewrite each block fully after modification.
+motivated by the decision to rewrite directory file completely after modification.
 
-Each directory block starts with 2 byte describing unused space at the end of
+Each block of directory file starts with 2 byte describing unused space at the end of
 this block followed by directory entries.
 
 #### Directory Block Layout
@@ -105,7 +105,7 @@ Offset          |Size          | Description
 Offset |Size   | Description
 :-----:|:-----:|------------
 0      |4      | inode id
-4      |1      | entry type: `0x00` — directory, `0x01` — file
+4      |1      | entry type: `0x01` — directory, `0x02` — file
 5      |1      | myName length, `L`
 6      |`L`    | myName characters
 
