@@ -14,7 +14,7 @@ public class FileInputStream extends InputStream {
     private int myOffset = 0;
     private int myMarkedOffset = 0;
 
-    FileInputStream(FileDescriptor fd, FileSystemDriver fs) {
+    public FileInputStream(FileDescriptor fd, FileSystemDriver fs) {
         this.fd = fd;
         this.fs = fs;
     }

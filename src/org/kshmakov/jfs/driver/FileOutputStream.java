@@ -12,7 +12,7 @@ public class FileOutputStream extends OutputStream {
 
     private final Object myLock = new Object();
 
-    FileOutputStream(FileDescriptor fd, FileSystemDriver fs) {
+    public FileOutputStream(FileDescriptor fd, FileSystemDriver fs) {
         this.fd = fd;
         this.fs = fs;
     }

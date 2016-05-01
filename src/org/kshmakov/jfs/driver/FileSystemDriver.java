@@ -12,6 +12,8 @@ import org.kshmakov.jfs.io.primitives.*;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -217,6 +219,7 @@ public final class FileSystemDriver {
             growInode(inodeId, blocksNeed - blocksHave);
         }
 
+        myAccessor.writeInodeInt(newSize, inodeId, InodeOffsets.OBJECT_SIZE);
         writeIntoFile(inodeId, buffer, offset);
     }
 
@@ -427,16 +430,16 @@ public final class FileSystemDriver {
     }
 
     @NotNull
-    public ArrayList<NamedDirectoryDescriptor> getDirectories(DirectoryDescriptor descriptor) throws JFSException {
+    public Map<String, DirectoryDescriptor>  getDirectories(DirectoryDescriptor descriptor) throws JFSException {
         Lock readLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].readLock();
         readLock.lock();
 
         try {
-            ArrayList<NamedDirectoryDescriptor> result = new ArrayList<NamedDirectoryDescriptor>();
+            Map<String, DirectoryDescriptor> result = new HashMap<String, DirectoryDescriptor>();
             ArrayList<DirectoryEntry> entries = getEntries(descriptor.inodeId);
             entries.forEach(entry -> {
                 if (entry.type == Parameters.EntryType.DIRECTORY) {
-                    result.add(new NamedDirectoryDescriptor(new DirectoryDescriptor(entry.inodeId), entry.name));
+                    result.put(entry.name, new DirectoryDescriptor(entry.inodeId));
                 }
             });
 
@@ -447,16 +450,16 @@ public final class FileSystemDriver {
     }
 
     @NotNull
-    public ArrayList<NamedFileDescriptor> getFiles(DirectoryDescriptor descriptor) throws JFSException {
+    public Map<String, FileDescriptor> getFiles(DirectoryDescriptor descriptor) throws JFSException {
         Lock readLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].readLock();
         readLock.lock();
 
         try {
-            ArrayList<NamedFileDescriptor> result = new ArrayList<NamedFileDescriptor>();
+            Map<String, FileDescriptor> result = new HashMap<String, FileDescriptor>();
             ArrayList<DirectoryEntry> entries = getEntries(descriptor.inodeId);
             entries.forEach(entry -> {
                 if (entry.type == Parameters.EntryType.FILE) {
-                    result.add(new NamedFileDescriptor(new FileDescriptor(entry.inodeId), entry.name));
+                    result.put(entry.name, new FileDescriptor(entry.inodeId));
                 }
             });
 

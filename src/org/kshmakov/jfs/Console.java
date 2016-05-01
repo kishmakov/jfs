@@ -3,7 +3,6 @@ package org.kshmakov.jfs;
 import org.kshmakov.jfs.driver.DirectoryDescriptor;
 import org.kshmakov.jfs.driver.FileSystemDriver;
 import org.kshmakov.jfs.driver.JFSRefuseException;
-import org.kshmakov.jfs.driver.NamedDirectoryDescriptor;
 import org.kshmakov.jfs.io.FileFormatter;
 import org.kshmakov.jfs.io.JFSBadFileException;
 import org.kshmakov.jfs.io.NameHelper;
@@ -22,8 +21,8 @@ public class Console {
     private DirectoryDescriptor myCurrentDir;
 
     private static final HashMap<String, String> myUsages;
-    static
-    {
+
+    static {
         myUsages = new HashMap<String, String>();
         myUsages.put("cd", "usage: cd directory_name\n   or  cd");
         myUsages.put("create", "usage: create file_name file_size");
@@ -34,6 +33,7 @@ public class Console {
         myUsages.put("mkdir", "usage: mkdir directory_name");
         myUsages.put("mount", "usage: mount file_name");
         myUsages.put("rm", "usage: rm file_name\n   or  rm -r directory_name");
+        myUsages.put("touch", "usage: touch file_name");
         myUsages.put("umount", "usage: umount");
     }
 
@@ -67,14 +67,8 @@ public class Console {
             return "";
         }
 
-        DirectoryDescriptor newDescriptor = null;
-        for (NamedDirectoryDescriptor namedDescriptor : myDriver.getDirectories(myCurrentDir)) {
-            if (namedDescriptor.name.equals(command[1])) {
-                newDescriptor = namedDescriptor.descriptor;
-            }
-        }
-
-        if (newDescriptor  == null) {
+        DirectoryDescriptor newDescriptor = myDriver.getDirectories(myCurrentDir).get(command[1]);
+        if (newDescriptor == null) {
             return "no such directory";
         }
 
@@ -169,8 +163,8 @@ public class Console {
         }
 
         ArrayList<String> listItems = new ArrayList<String>();
-        myDriver.getDirectories(myCurrentDir).forEach(item -> listItems.add("d: " + item.name));
-        myDriver.getFiles(myCurrentDir).forEach(item -> listItems.add("f: " + item.name));
+        myDriver.getDirectories(myCurrentDir).forEach((k, v) -> listItems.add("d: " + k));
+        myDriver.getFiles(myCurrentDir).forEach((k,v ) -> listItems.add("f: " + k));
 
         Collections.sort(listItems);
 
@@ -244,6 +238,25 @@ public class Console {
         return "";
     }
 
+    private String createFile(String[] command) throws JFSException {
+        if (myDriver == null) {
+            return "file system is not mounted";
+        }
+
+        if (command.length < 2) {
+            return "file name is not provided\n" + myUsages.get(command[0]);
+        }
+
+        try {
+            myDriver.tryAddFile(myCurrentDir, command[1]);
+        } catch (JFSRefuseException e) {
+            return "could not create file: " + e.getMessage();
+        }
+
+        return "";
+
+    }
+
     private String umountFile() {
         myCurrentFile = "";
         myCurrentPath = new ArrayList<String>();
@@ -273,6 +286,8 @@ public class Console {
                     return mountFile(command);
                 case "rm":
                     return removeEntry(command);
+                case "touch":
+                    return createFile(command);
                 case "umount":
                     return umountFile();
             }
