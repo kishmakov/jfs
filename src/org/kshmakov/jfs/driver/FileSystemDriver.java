@@ -140,6 +140,7 @@ public final class FileSystemDriver {
         freeBlocks(subtractBlocks(inodeId, blocksNumber));
     }
 
+    @NotNull
     @GuardedBy("myInodesLocks")
     private ByteBuffer readFromFile(int inodeId, int offset, int length) throws JFSException {
         ByteBuffer buffer = ByteBuffer.allocate(length);
@@ -191,6 +192,7 @@ public final class FileSystemDriver {
         assert !buffer.hasRemaining();
     }
 
+    @NotNull
     @GuardedBy("myInodesLocks")
     private ByteBuffer tryReadFromFile(int inodeId, int offset, int maxLength) throws JFSException {
         final int currentSize = myAccessor.readInodeInt(inodeId, InodeOffsets.OBJECT_SIZE);
@@ -370,6 +372,7 @@ public final class FileSystemDriver {
         }
     }
 
+    @NotNull
     public ByteBuffer tryReadFromFile(FileDescriptor descriptor, int offset, int maxLength) throws JFSException {
         Lock readLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].readLock();
         readLock.lock();
@@ -383,7 +386,6 @@ public final class FileSystemDriver {
         }
     }
 
-
     public void tryWriteIntoFile(FileDescriptor descriptor, ByteBuffer buffer, int offset) throws JFSException {
         Lock writeLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].writeLock();
         writeLock.lock();
@@ -391,6 +393,33 @@ public final class FileSystemDriver {
         try {
             assert (byte) (myAccessor.readInodeInt(descriptor.inodeId, InodeOffsets.INODE_DESCRIPTION) >> 24) ==
                     Parameters.typeToByte(Parameters.EntryType.FILE);
+            tryWriteIntoFile(descriptor.inodeId, buffer, offset);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    public int getFileSize(FileDescriptor descriptor) throws JFSException {
+        Lock readLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].readLock();
+        readLock.lock();
+
+        try {
+            assert (byte) (myAccessor.readInodeInt(descriptor.inodeId, InodeOffsets.INODE_DESCRIPTION) >> 24) ==
+                    Parameters.typeToByte(Parameters.EntryType.FILE);
+            return myAccessor.readInodeInt(descriptor.inodeId, InodeOffsets.OBJECT_SIZE);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    public void tryAppendToFile(FileDescriptor descriptor, ByteBuffer buffer) throws JFSException {
+        Lock writeLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].writeLock();
+        writeLock.lock();
+
+        try {
+            assert (byte) (myAccessor.readInodeInt(descriptor.inodeId, InodeOffsets.INODE_DESCRIPTION) >> 24) ==
+                    Parameters.typeToByte(Parameters.EntryType.FILE);
+            int offset = myAccessor.readInodeInt(descriptor.inodeId, InodeOffsets.OBJECT_SIZE);
             tryWriteIntoFile(descriptor.inodeId, buffer, offset);
         } finally {
             writeLock.unlock();
