@@ -19,20 +19,8 @@ public class FileOutputStream extends OutputStream {
 
     @Override
     public void write(int b) throws IOException {
-        synchronized (myLock) {
-            try {
-                if (fd == null || fs == null) {
-                    throw new IOException("Stream is closed");
-                }
-
-                ByteBuffer buffer = ByteBuffer.allocate(1);
-                buffer.put((byte) b);
-
-                fs.tryAppendToFile(fd, buffer);
-            } catch (JFSException e) {
-                throw new IOException(e.getMessage());
-            }
-        }
+        byte[] bytes = new byte[]{(byte) b};
+        write(bytes, 0, 1);
     }
 
     @Override

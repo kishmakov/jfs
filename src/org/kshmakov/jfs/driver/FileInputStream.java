@@ -21,24 +21,11 @@ public class FileInputStream extends InputStream {
 
     @Override
     public int read() throws IOException {
-        synchronized (myLock) {
-            try {
-                if (fd == null || fs == null) {
-                    throw new IOException("Stream is closed");
-                }
-
-                ByteBuffer buffer = fs.tryReadFromFile(fd, myOffset, 1);
-                if (buffer.capacity() == 0) {
-                    return  -1;
-                }
-
-                myOffset += buffer.capacity();
-                buffer.rewind();
-                return (int) buffer.get() & 0xFF;
-            } catch (JFSException e) {
-                throw new IOException(e.getMessage());
-            }
-        }
+        byte[] bytes = new byte[1];
+        int result = read(bytes, 0, 1);
+        return result == 1
+                ? (int) bytes[0] & 0xFF
+                : -1;
     }
 
     @Override
@@ -59,10 +46,14 @@ public class FileInputStream extends InputStream {
                 }
 
                 ByteBuffer buffer = fs.tryReadFromFile(fd, myOffset, len);
+                if (buffer.capacity() == 0) {
+                    return  -1;
+                }
+
                 myOffset += buffer.capacity();
                 buffer.rewind();
                 buffer.get(b, off, buffer.capacity());
-                return buffer.capacity() > 0 ? buffer.capacity() : -1;
+                return buffer.capacity();
             } catch (JFSException e) {
                 throw new IOException(e.getMessage());
             }
