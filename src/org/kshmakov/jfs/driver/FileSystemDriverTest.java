@@ -1,8 +1,10 @@
 package org.kshmakov.jfs.driver;
 
+import org.junit.After;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.kshmakov.jfs.JFSException;
+import org.kshmakov.jfs.TestCommon;
 import org.kshmakov.jfs.io.FileAccessor;
 import org.kshmakov.jfs.io.FileFormatter;
 import org.kshmakov.jfs.io.HeaderOffsets;
@@ -13,25 +15,9 @@ import java.io.RandomAccessFile;
 
 public class FileSystemDriverTest {
 
-    private static final String TEST_JFS_NAME = "temp.jfs";
-
-    private FileAccessor createAccessor(int size) throws IOException, JFSException {
-        RandomAccessFile file = new RandomAccessFile(TEST_JFS_NAME, "rw");
-        file.setLength(size);
-
-        FileFormatter formatter = new FileFormatter(TEST_JFS_NAME);
-        formatter.format();
-
-        return new FileAccessor(TEST_JFS_NAME);
-    }
-
-    private void cleanUp() {
-        (new File(TEST_JFS_NAME)).delete();
-    }
-
     @Test
     public void test00() throws IOException, JFSException {
-        FileAccessor accessor = createAccessor(200000);
+        FileAccessor accessor = TestCommon.createAccessor(200000);
         FileSystemDriver driver = new FileSystemDriver(accessor);
 
         assertEquals(30, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
@@ -51,7 +37,10 @@ public class FileSystemDriverTest {
         assertEquals(2, driver.getDirectories(rootDir).size());
         assertEquals(30, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
         assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+    }
 
-        cleanUp();
+    @After
+    public void cleanUp() {
+        TestCommon.cleanUp();
     }
 }
