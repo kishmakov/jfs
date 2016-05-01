@@ -33,6 +33,7 @@ public class FileInputStream extends InputStream {
                 }
 
                 myOffset += buffer.capacity();
+                buffer.rewind();
                 return (int) buffer.get() & 0xFF;
             } catch (JFSException e) {
                 throw new IOException(e.getMessage());
@@ -61,7 +62,7 @@ public class FileInputStream extends InputStream {
                 myOffset += buffer.capacity();
                 buffer.rewind();
                 buffer.get(b, off, buffer.capacity());
-                return buffer.capacity();
+                return buffer.capacity() > 0 ? buffer.capacity() : -1;
             } catch (JFSException e) {
                 throw new IOException(e.getMessage());
             }

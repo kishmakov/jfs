@@ -2,7 +2,6 @@ package org.kshmakov.jfs.driver;
 
 import org.junit.After;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.TestCommon;
 import org.kshmakov.jfs.io.FileAccessor;
@@ -11,6 +10,8 @@ import org.kshmakov.jfs.io.HeaderOffsets;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Map;
+
+import static org.junit.Assert.*;
 
 public class FileSystemDriverTest {
 
@@ -251,6 +252,20 @@ public class FileSystemDriverTest {
 
         assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
         assertEquals(44, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+        writer.close();
+
+        FileInputStream inputStream = new FileInputStream(driver, file);
+
+        for (int i = 0; i < 513; i++) {
+            for (byte refByte = '0'; refByte <= '9'; refByte++) {
+                assertEquals(refByte, inputStream.read());
+            }
+
+            for (byte refByte = 'A'; refByte <= 'F'; refByte++) {
+                assertEquals(refByte, inputStream.read());
+            }
+        }
     }
 
     @After
