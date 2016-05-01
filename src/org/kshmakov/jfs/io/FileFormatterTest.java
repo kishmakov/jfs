@@ -9,7 +9,7 @@ import javax.xml.ws.soap.Addressing;
 import static org.junit.Assert.*;
 
 public class FileFormatterTest {
-    @Test(expected=JFSBadFileException.class)
+    @Test(expected = JFSBadFileException.class)
     public void test00() throws Exception {
         TestCommon.createFile((int) Parameters.MIN_FS_SIZE - 1);
         TestCommon.formatFile();

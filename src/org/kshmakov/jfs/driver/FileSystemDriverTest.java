@@ -6,14 +6,15 @@ import static org.junit.Assert.*;
 import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.TestCommon;
 import org.kshmakov.jfs.io.FileAccessor;
-import org.kshmakov.jfs.io.FileFormatter;
 import org.kshmakov.jfs.io.HeaderOffsets;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.PrintWriter;
+import java.util.Map;
 
 public class FileSystemDriverTest {
+
+    private final static String LONG_NAME = "thisisa1reallylongdirectory__````name;youshoudnot_name_directory_likethis.because)then1%@&df^it_mayjustblow_up_some_sunnymorning;moreover9itwillnotmake_you_famous_nor_rich;please,stop_it,stopit--+=whileUcan;DOYOUHEREME?AHhhhh!1111111-934itgtkregetfghodnfd";
 
     @Test
     public void test00() throws IOException, JFSException {
@@ -24,7 +25,7 @@ public class FileSystemDriverTest {
         assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
 
         DirectoryDescriptor rootDir = driver.rootInode();
-        assertEquals("After initial formatting there muse be empty directory.", 2, driver.getDirectories(rootDir).size());
+        assertEquals(2, driver.getDirectories(rootDir).size());
 
         driver.tryAddDirectory(rootDir, "abacaba");
 
@@ -37,6 +38,219 @@ public class FileSystemDriverTest {
         assertEquals(2, driver.getDirectories(rootDir).size());
         assertEquals(30, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
         assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+    }
+
+    @Test(expected = JFSRefuseException.class)
+    public void test01() throws IOException, JFSException {
+        FileAccessor accessor = TestCommon.createAccessor(200000);
+        FileSystemDriver driver = new FileSystemDriver(accessor);
+
+        DirectoryDescriptor rootDir = driver.rootInode();
+        driver.tryAddDirectory(rootDir, "abacaba");
+        driver.tryRemoveDirectory(rootDir, "abacaba");
+        driver.tryRemoveDirectory(rootDir, "abacaba");
+    }
+
+    @Test
+    public void test02() throws IOException, JFSException {
+        FileAccessor accessor = TestCommon.createAccessor(200000);
+        FileSystemDriver driver = new FileSystemDriver(accessor);
+
+        assertEquals(30, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+        DirectoryDescriptor rootDir = driver.rootInode();
+        driver.tryAddDirectory(rootDir, LONG_NAME);
+
+        assertEquals(3, driver.getDirectories(rootDir).size());
+        assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(46, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+    }
+
+    @Test(expected = JFSRefuseException.class)
+    public void test03() throws IOException, JFSException {
+        FileAccessor accessor = TestCommon.createAccessor(200000);
+        FileSystemDriver driver = new FileSystemDriver(accessor);
+
+        DirectoryDescriptor rootDir = driver.rootInode();
+        driver.tryAddDirectory(rootDir, LONG_NAME + "1");
+    }
+
+    @Test
+    public void test04() throws IOException, JFSException {
+        FileAccessor accessor = TestCommon.createAccessor(200000);
+        String[] names = new String[]{"a", "directory", LONG_NAME};
+
+        for (String name : names) {
+            TestCommon.formatFile();
+            FileSystemDriver driver = new FileSystemDriver(accessor);
+            DirectoryDescriptor currentDir = driver.rootInode();
+
+            for (int i = 0; i < 30; i++) {
+                driver.tryAddDirectory(currentDir, name);
+
+                assertEquals(29 - i, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+                assertEquals(46 - i, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+                Map<String, DirectoryDescriptor> directories = driver.getDirectories(currentDir);
+
+                assertEquals(3, directories.size());
+                assertTrue(directories.containsKey(name));
+                currentDir = directories.get(name);
+            }
+        }
+    }
+
+    @Test
+    public void test05() throws IOException, JFSException {
+        FileAccessor accessor = TestCommon.createAccessor(200000);
+        FileSystemDriver driver = new FileSystemDriver(accessor);
+
+        String prefix = "directory";
+
+        DirectoryDescriptor rootDir = driver.rootInode();
+
+        for (int i = 0; i < 30; i++) {
+            driver.tryAddDirectory(rootDir, prefix + Integer.toString(i));
+            assertEquals(29 - i, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+            assertEquals(46 - i, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+        }
+    }
+
+    @Test
+    public void test06() throws IOException, JFSException {
+        FileAccessor accessor = TestCommon.createAccessor(200000);
+        FileSystemDriver driver = new FileSystemDriver(accessor);
+
+        String prefix = LONG_NAME.substring(2);
+
+        DirectoryDescriptor rootDir = driver.rootInode();
+
+        for (int i = 0; i < 15; i++) {
+            driver.tryAddDirectory(rootDir, prefix + Integer.toString(i));
+            assertEquals(29 - i, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+            assertEquals(46 - i, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+        }
+
+        for (int i = 15; i < 30; i++) {
+            driver.tryAddDirectory(rootDir, prefix + Integer.toString(i));
+            assertEquals(29 - i, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+            assertEquals(45 - i, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+        }
+    }
+
+    @Test
+    public void test07() throws IOException, JFSException {
+        FileAccessor accessor = TestCommon.createAccessor(200000);
+        FileSystemDriver driver = new FileSystemDriver(accessor);
+
+        DirectoryDescriptor rootDir = driver.rootInode();
+        driver.tryAddDirectory(rootDir, "a");
+        driver.tryAddDirectory(rootDir, "b");
+
+        assertEquals(28, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(45, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+        DirectoryDescriptor aDir = driver.getDirectories(rootDir).get("a");
+
+        driver.tryAddDirectory(aDir, "aa");
+        driver.tryAddDirectory(aDir, "bb");
+
+        assertEquals(26, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(43, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+        DirectoryDescriptor aaDir = driver.getDirectories(aDir).get("aa");
+
+        String fileName = "file.txt";
+
+        driver.tryAddFile(aaDir, fileName);
+
+        assertEquals(25, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(43, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+        Map<String, FileDescriptor> files = driver.getFiles(aaDir);
+        assertEquals(1, files.size());
+        assertTrue(files.containsKey(fileName));
+        String[] lines = new String[]{"First line.", "Second line.", "Bazinga!"};
+        TestCommon.writelnLinesTo(driver, files.get(fileName), lines);
+
+        assertEquals(25, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(42, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+        driver.tryRemoveDirectory(rootDir, "a");
+
+        assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(46, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+        driver.tryRemoveDirectory(rootDir, "b");
+
+        assertEquals(30, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+    }
+
+    @Test
+    public void test08() throws IOException, JFSException {
+        FileAccessor accessor = TestCommon.createAccessor(200000);
+        FileSystemDriver driver = new FileSystemDriver(accessor);
+
+        DirectoryDescriptor rootDir = driver.rootInode();
+
+        String fileName = "file.txt";
+
+        driver.tryAddFile(rootDir, fileName);
+
+        FileDescriptor file = driver.getFiles(rootDir).get(fileName);
+        String[] input = new String[]{"First_line.", "Second_line.", "Bazinga!"};
+        TestCommon.writelnLinesTo(driver, file, input);
+        String[] output = TestCommon.readLinesFrom(driver, file);
+        assertArrayEquals(input, output);
+    }
+
+    @Test
+    public void test09() throws IOException, JFSException {
+        FileAccessor accessor = TestCommon.createAccessor(200000);
+        FileSystemDriver driver = new FileSystemDriver(accessor);
+
+        DirectoryDescriptor rootDir = driver.rootInode();
+
+        String fileName = "file.txt";
+        driver.tryAddFile(rootDir, fileName);
+        FileDescriptor file = driver.getFiles(rootDir).get(fileName);
+
+        assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+        PrintWriter writer = new PrintWriter(new FileOutputStream(driver, file));
+
+        String refLine = "0123456789ABCDEF";
+
+        for (int i = 0; i < 256; i++) {
+            writer.append(refLine);
+        }
+
+        writer.flush();
+
+        assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(46, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+        writer.append(refLine);
+        writer.flush();
+
+        assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(45, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+        for (int i = 0; i < 255; i++) {
+            writer.append(refLine);
+        }
+
+        assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(45, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+        writer.append(refLine);
+        writer.flush();
+
+        assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(44, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
     }
 
     @After

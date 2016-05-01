@@ -1,4 +1,0 @@
-create n00.jfs 4192
-format n00.jfs
-mount n00.jfs
-ls

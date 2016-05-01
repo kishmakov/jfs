@@ -1,12 +1,16 @@
 package org.kshmakov.jfs;
 
 import org.junit.runner.notification.RunListener;
+import org.kshmakov.jfs.driver.*;
+import org.kshmakov.jfs.driver.FileDescriptor;
+import org.kshmakov.jfs.driver.FileInputStream;
+import org.kshmakov.jfs.driver.FileOutputStream;
 import org.kshmakov.jfs.io.FileAccessor;
 import org.kshmakov.jfs.io.FileFormatter;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Scanner;
 
 public class TestCommon extends RunListener {
     private static final String TEST_JFS_NAME = "temp.jfs";
@@ -26,6 +30,36 @@ public class TestCommon extends RunListener {
         formatFile();
 
         return new FileAccessor(TestCommon.TEST_JFS_NAME);
+    }
+
+    public static void writelnLinesTo(FileSystemDriver fs, FileDescriptor fd, String[] lines) {
+        PrintWriter writer = new PrintWriter(new FileOutputStream(fs, fd));
+        for (String line : lines) {
+            writer.println(line);
+        }
+
+        writer.close();
+    }
+
+    public static void writeLinesTo(FileSystemDriver fs, FileDescriptor fd, String[] lines) {
+        PrintWriter writer = new PrintWriter(new FileOutputStream(fs, fd));
+        for (String line : lines) {
+            writer.print(line);
+        }
+
+        writer.close();
+    }
+
+    public static String[] readLinesFrom(FileSystemDriver fs, FileDescriptor fd) {
+        Scanner scanner = new Scanner(new FileInputStream(fs, fd));
+        ArrayList<String> lines = new ArrayList<String>();
+
+        while (scanner.hasNext()) {
+            lines.add(scanner.next());
+        }
+
+        String[] result = new String[lines.size()];
+        return lines.toArray(result);
     }
 
     public static void cleanUp() {
