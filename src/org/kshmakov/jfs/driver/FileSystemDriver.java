@@ -38,8 +38,12 @@ public final class FileSystemDriver {
         }
     }
 
-    public FileSystemDriver(String name) throws JFSException {
-        myAccessor = new FileAccessor(name);
+    public static FileSystemDriver fileSystemDriver(String name) throws JFSException {
+        return new FileSystemDriver(new FileAccessor(name));
+    }
+
+    FileSystemDriver(FileAccessor accessor) throws JFSException {
+        myAccessor = accessor;
         myInodesStack = new InodesStack(myAccessor);
         myBlocksStack = new BlocksStack(myAccessor);
 
