@@ -207,67 +207,6 @@ public class FileSystemDriverTest {
         assertArrayEquals(input, output);
     }
 
-    @Test
-    public void test09() throws IOException, JFSException {
-        FileAccessor accessor = TestCommon.createAccessor(200000);
-        FileSystemDriver driver = new FileSystemDriver(accessor);
-
-        DirectoryDescriptor rootDir = driver.rootInode();
-
-        String fileName = "file.txt";
-        driver.tryAddFile(rootDir, fileName);
-        FileDescriptor file = driver.getFiles(rootDir).get(fileName);
-
-        assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
-        assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
-
-        PrintWriter writer = new PrintWriter(new FileOutputStream(driver, file));
-
-        String refLine = "0123456789ABCDEF";
-
-        for (int i = 0; i < 256; i++) {
-            writer.append(refLine);
-        }
-
-        writer.flush();
-
-        assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
-        assertEquals(46, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
-
-        writer.append(refLine);
-        writer.flush();
-
-        assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
-        assertEquals(45, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
-
-        for (int i = 0; i < 255; i++) {
-            writer.append(refLine);
-        }
-
-        assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
-        assertEquals(45, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
-
-        writer.append(refLine);
-        writer.flush();
-
-        assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
-        assertEquals(44, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
-
-        writer.close();
-
-        FileInputStream inputStream = new FileInputStream(driver, file);
-
-        for (int i = 0; i < 513; i++) {
-            for (byte refByte = '0'; refByte <= '9'; refByte++) {
-                assertEquals(refByte, inputStream.read());
-            }
-
-            for (byte refByte = 'A'; refByte <= 'F'; refByte++) {
-                assertEquals(refByte, inputStream.read());
-            }
-        }
-    }
-
     @After
     public void cleanUp() {
         TestCommon.cleanUp();
