@@ -38,8 +38,8 @@ public final class FileSystemDriver {
         }
     }
 
-    public static FileSystemDriver fileSystemDriver(String name) throws JFSException {
-        return new FileSystemDriver(new FileAccessor(name));
+    public FileSystemDriver(String name) throws JFSException {
+        this(new FileAccessor(name));
     }
 
     FileSystemDriver(FileAccessor accessor) throws JFSException {

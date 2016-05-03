@@ -204,7 +204,7 @@ public class Console {
             umountFile();
 
         try {
-            myDriver = FileSystemDriver.fileSystemDriver(command[1]);
+            myDriver = new FileSystemDriver(command[1]);
             myCurrentDir = myDriver.rootInode();
             myCurrentPath = new ArrayList<String>();
             myCurrentFile = "@" + command[1] + ":";
