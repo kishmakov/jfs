@@ -1,13 +1,18 @@
 package org.kshmakov.jfs.io;
 
-import net.jcip.annotations.NotThreadSafe;
+import net.jcip.annotations.GuardedBy;
+import net.jcip.annotations.ThreadSafe;
 import org.kshmakov.jfs.JFSException;
+import org.kshmakov.jfs.driver.tools.DriverHelper;
+import org.kshmakov.jfs.io.primitives.InodeBase;
 
-@NotThreadSafe
+@ThreadSafe
 public class InodesStack {
     private FileAccessor myAccessor;
     private int myUnallocatedInodes;
     private int myFirstUnallocatedId;
+
+    private final Object myLock = new Object();
 
     public InodesStack(FileAccessor accessor) throws JFSBadFileException {
         myAccessor = accessor;
@@ -15,25 +20,33 @@ public class InodesStack {
         myFirstUnallocatedId = accessor.readHeaderInt(HeaderOffsets.FIRST_UNALLOCATED_INODE_ID);
     }
 
-    public boolean empty() {
+    @GuardedBy("myLock")
+    private boolean empty() {
         return myUnallocatedInodes == 0;
     }
 
-    public int pop() throws JFSException {
-        assert !empty();
-        int resultId = myFirstUnallocatedId;
+    public int pop(InodeBase inode) throws JFSException {
+        synchronized (myLock) {
+            DriverHelper.refuseIf(empty(), "no unallocated inodes left");
 
-        myFirstUnallocatedId = myAccessor.readInodeInt(resultId, InodeOffsets.NEXT_INODE);
-        myAccessor.writeHeaderInt(myFirstUnallocatedId, HeaderOffsets.FIRST_UNALLOCATED_INODE_ID);
-        myAccessor.writeHeaderInt(--myUnallocatedInodes, HeaderOffsets.TOTAL_UNALLOCATED_INODES);
+            int resultId = myFirstUnallocatedId;
 
-        return resultId;
+            myFirstUnallocatedId = myAccessor.readInodeInt(resultId, InodeOffsets.NEXT_INODE);
+            myAccessor.writeHeaderInt(myFirstUnallocatedId, HeaderOffsets.FIRST_UNALLOCATED_INODE_ID);
+            myAccessor.writeHeaderInt(--myUnallocatedInodes, HeaderOffsets.TOTAL_UNALLOCATED_INODES);
+
+            myAccessor.writeInode(inode, resultId);
+
+            return resultId;
+        }
     }
 
     public void push(int inodeId) throws JFSException {
-        myAccessor.writeInodeInt(myFirstUnallocatedId, inodeId, InodeOffsets.NEXT_INODE);
-        myAccessor.writeHeaderInt(inodeId, HeaderOffsets.FIRST_UNALLOCATED_INODE_ID);
-        myAccessor.writeHeaderInt(++myUnallocatedInodes, HeaderOffsets.TOTAL_UNALLOCATED_INODES);
-        myFirstUnallocatedId = inodeId;
+        synchronized (myLock) {
+            myAccessor.writeInodeInt(myFirstUnallocatedId, inodeId, InodeOffsets.NEXT_INODE);
+            myAccessor.writeHeaderInt(inodeId, HeaderOffsets.FIRST_UNALLOCATED_INODE_ID);
+            myAccessor.writeHeaderInt(++myUnallocatedInodes, HeaderOffsets.TOTAL_UNALLOCATED_INODES);
+            myFirstUnallocatedId = inodeId;
+        }
     }
 }
