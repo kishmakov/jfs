@@ -1,13 +1,13 @@
 package org.kshmakov.jfs.io;
 
 import net.jcip.annotations.GuardedBy;
-import net.jcip.annotations.NotThreadSafe;
+import net.jcip.annotations.ThreadSafe;
 import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.driver.tools.DriverHelper;
 
 import java.util.ArrayList;
 
-@NotThreadSafe
+@ThreadSafe
 public class BlocksStack {
     private FileAccessor myAccessor;
     private int myUnallocatedBlocks;
