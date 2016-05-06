@@ -97,6 +97,7 @@ public class FileSystemDriverTest {
 
                 assertEquals(3, directories.size());
                 assertTrue(directories.containsKey(name));
+
                 currentDir = directories.get(name);
             }
         }
@@ -146,21 +147,17 @@ public class FileSystemDriverTest {
         FileSystemDriver driver = new FileSystemDriver(accessor);
 
         DirectoryDescriptor rootDir = driver.rootInode();
-        driver.tryAddDirectory(rootDir, "a");
+        DirectoryDescriptor aDir = driver.tryAddDirectory(rootDir, "a");
         driver.tryAddDirectory(rootDir, "b");
 
         assertEquals(28, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
         assertEquals(45, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
 
-        DirectoryDescriptor aDir = driver.getDirectories(rootDir).get("a");
-
-        driver.tryAddDirectory(aDir, "aa");
+        DirectoryDescriptor aaDir = driver.tryAddDirectory(aDir, "aa");
         driver.tryAddDirectory(aDir, "bb");
 
         assertEquals(26, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
         assertEquals(43, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
-
-        DirectoryDescriptor aaDir = driver.getDirectories(aDir).get("aa");
 
         String fileName = "file.txt";
 
