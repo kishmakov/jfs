@@ -288,7 +288,7 @@ public final class FileSystemDriver {
         }
     }
 
-    public void tryAddFile(DirectoryDescriptor descriptor, String name) throws JFSException {
+    public FileDescriptor tryAddFile(DirectoryDescriptor descriptor, String name) throws JFSException {
         String resolution = NameHelper.inspect(name);
         DriverHelper.refuseIf(!resolution.isEmpty(), resolution);
 
@@ -302,6 +302,7 @@ public final class FileSystemDriver {
             tryRewriteFile(newInodeId, ByteBuffer.allocate(0));
             entries.add(new DirectoryEntry(newInodeId, Parameters.EntryType.FILE, name));
             tryRewriteFile(descriptor.inodeId, ByteBufferHelper.toBuffer(entries));
+            return new FileDescriptor(newInodeId);
         } finally {
             writeLock.unlock();
         }

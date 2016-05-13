@@ -195,9 +195,8 @@ public class FileSystemDriverTest {
 
         String fileName = "file.txt";
 
-        driver.tryAddFile(rootDir, fileName);
+        FileDescriptor file = driver.tryAddFile(rootDir, fileName);
 
-        FileDescriptor file = driver.getFiles(rootDir).get(fileName);
         String[] input = new String[]{"First_line.", "Second_line.", "Bazinga!"};
         TestCommon.writelnLinesTo(driver, file, input);
         String[] output = TestCommon.readLinesFrom(driver, file);

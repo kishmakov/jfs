@@ -27,8 +27,7 @@ public class FileStreamsTest {
 
         DirectoryDescriptor rootDir = fs.rootInode();
         String fileName = "file.txt";
-        fs.tryAddFile(rootDir, fileName);
-        fd = fs.getFiles(rootDir).get(fileName);
+        fd = fs.tryAddFile(rootDir, fileName);
     }
 
     @Test
@@ -84,6 +83,7 @@ public class FileStreamsTest {
                 assertEquals(refByte, inputStream.read());
             }
         }
+
     }
 
     @Test

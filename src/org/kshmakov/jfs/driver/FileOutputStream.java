@@ -42,6 +42,7 @@ public class FileOutputStream extends OutputStream {
 
                 ByteBuffer buffer = ByteBuffer.allocate(len);
                 buffer.put(b, off, len);
+
                 fs.tryAppendToFile(fd, buffer);
             } catch (JFSException e) {
                 throw new IOException(e.getMessage());
