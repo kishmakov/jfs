@@ -1,6 +1,7 @@
 package org.kshmakov.jfs.driver;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.TestCommon;
@@ -14,14 +15,19 @@ import java.util.Map;
 import static org.junit.Assert.*;
 
 public class FileSystemDriverTest {
-
     private final static String LONG_NAME = "thisisa1reallylongdirectory__````name;youshoudnot_name_directory_likethis.because)then1%@&df^it_mayjustblow_up_some_sunnymorning;moreover9itwillnotmake_you_famous_nor_rich;please,stop_it,stopit--+=whileUcan;DOYOUHEREME?AHhhhh!1111111-934itgtkregetfghodnfd";
+
+    private FileAccessor accessor = null;
+    private FileSystemDriver driver = null;
+
+    @Before
+    public void initialization() throws IOException, JFSException {
+        accessor = TestCommon.createAccessor(200000);
+        driver = new FileSystemDriver(accessor);
+    }
 
     @Test
     public void test00() throws IOException, JFSException {
-        FileAccessor accessor = TestCommon.createAccessor(200000);
-        FileSystemDriver driver = new FileSystemDriver(accessor);
-
         assertEquals(30, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
         assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
 
@@ -43,9 +49,6 @@ public class FileSystemDriverTest {
 
     @Test(expected = JFSRefuseException.class)
     public void test01() throws IOException, JFSException {
-        FileAccessor accessor = TestCommon.createAccessor(200000);
-        FileSystemDriver driver = new FileSystemDriver(accessor);
-
         DirectoryDescriptor rootDir = driver.rootInode();
         driver.tryAddDirectory(rootDir, "abacaba");
         driver.tryRemoveDirectory(rootDir, "abacaba");
@@ -54,9 +57,6 @@ public class FileSystemDriverTest {
 
     @Test
     public void test02() throws IOException, JFSException {
-        FileAccessor accessor = TestCommon.createAccessor(200000);
-        FileSystemDriver driver = new FileSystemDriver(accessor);
-
         assertEquals(30, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
         assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
 
@@ -70,16 +70,12 @@ public class FileSystemDriverTest {
 
     @Test(expected = JFSRefuseException.class)
     public void test03() throws IOException, JFSException {
-        FileAccessor accessor = TestCommon.createAccessor(200000);
-        FileSystemDriver driver = new FileSystemDriver(accessor);
-
         DirectoryDescriptor rootDir = driver.rootInode();
         driver.tryAddDirectory(rootDir, LONG_NAME + "1");
     }
 
     @Test
     public void test04() throws IOException, JFSException {
-        FileAccessor accessor = TestCommon.createAccessor(200000);
         String[] names = new String[]{"a", "directory", LONG_NAME};
 
         for (String name : names) {
@@ -105,9 +101,6 @@ public class FileSystemDriverTest {
 
     @Test
     public void test05() throws IOException, JFSException {
-        FileAccessor accessor = TestCommon.createAccessor(200000);
-        FileSystemDriver driver = new FileSystemDriver(accessor);
-
         String prefix = "directory";
 
         DirectoryDescriptor rootDir = driver.rootInode();
@@ -121,9 +114,6 @@ public class FileSystemDriverTest {
 
     @Test
     public void test06() throws IOException, JFSException {
-        FileAccessor accessor = TestCommon.createAccessor(200000);
-        FileSystemDriver driver = new FileSystemDriver(accessor);
-
         String prefix = LONG_NAME.substring(2);
 
         DirectoryDescriptor rootDir = driver.rootInode();
@@ -143,9 +133,6 @@ public class FileSystemDriverTest {
 
     @Test
     public void test07() throws IOException, JFSException {
-        FileAccessor accessor = TestCommon.createAccessor(200000);
-        FileSystemDriver driver = new FileSystemDriver(accessor);
-
         DirectoryDescriptor rootDir = driver.rootInode();
         DirectoryDescriptor aDir = driver.tryAddDirectory(rootDir, "a");
         driver.tryAddDirectory(rootDir, "b");
@@ -188,9 +175,6 @@ public class FileSystemDriverTest {
 
     @Test
     public void test08() throws IOException, JFSException {
-        FileAccessor accessor = TestCommon.createAccessor(200000);
-        FileSystemDriver driver = new FileSystemDriver(accessor);
-
         DirectoryDescriptor rootDir = driver.rootInode();
 
         String fileName = "file.txt";
