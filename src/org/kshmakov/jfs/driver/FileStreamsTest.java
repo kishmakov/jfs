@@ -10,6 +10,7 @@ import org.kshmakov.jfs.io.HeaderOffsets;
 import org.kshmakov.jfs.io.Parameters;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 
@@ -19,15 +20,13 @@ public class FileStreamsTest {
     private FileAccessor accessor = null;
     private FileSystemDriver fs = null;
     private FileDescriptor fd = null;
+    private final String FILE_NAME = "file.txt";
 
     @Before
     public void initialization() throws IOException, JFSException {
         accessor = TestCommon.createAccessor(200000);
         fs = new FileSystemDriver(accessor);
-
-        DirectoryDescriptor rootDir = fs.rootInode();
-        String fileName = "file.txt";
-        fd = fs.tryAddFile(rootDir, fileName);
+        fd = fs.tryAddFile(fs.rootInode(), FILE_NAME);
     }
 
     @Test
@@ -107,6 +106,47 @@ public class FileStreamsTest {
 
         assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
         assertEquals(47 - Parameters.DIRECT_POINTERS_NUMBER, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+    }
+
+    @Test
+    public void test02() throws IOException, JFSException {
+        /**
+         * Checks file sizes 48K.
+         */
+        assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+        assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+        for (int repetition = 0; repetition < 5; ++repetition) {
+            OutputStream outputStream = new FileOutputStream(fs, fd);
+
+            byte[] outBytes = new byte[Parameters.DIRECT_POINTERS_NUMBER * 4096];
+
+            for (int i = 0; i < outBytes.length; ++i) {
+                outBytes[i] = (byte) (i % 100);
+            }
+
+            outputStream.write(outBytes);
+
+            assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+            assertEquals(47 - Parameters.DIRECT_POINTERS_NUMBER, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+            outputStream.close();
+
+            InputStream inputStream = new FileInputStream(fs, fd);
+            byte[] inBytes = new byte[Parameters.DIRECT_POINTERS_NUMBER * 4096];
+            inputStream.read(inBytes);
+
+            for (int i = 0; i < inBytes.length; ++i) {
+                assertEquals(inBytes[i], (byte) (i % 100));
+            }
+
+            fs.tryRemoveFile(fs.rootInode(), FILE_NAME);
+
+            assertEquals(30, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+            assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+            fd = fs.tryAddFile(fs.rootInode(), FILE_NAME);
+        }
     }
 
     @After

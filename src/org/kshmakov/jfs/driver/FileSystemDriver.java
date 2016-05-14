@@ -133,8 +133,20 @@ public final class FileSystemDriver {
             offset = 0;
 
             blockBuffer.put(ByteBufferHelper.advance(buffer, blockBuffer.remaining()));
+
             myAccessor.writeBlock(new BlockBase(blockBuffer), blockId);
         }
+
+//        Runtime runtime = Runtime.getRuntime();
+//        System.gc();
+//        long m1 = runtime.totalMemory() - runtime.freeMemory();
+//        System.out.printf("%d", m1);
+//        System.gc();
+//        long m2 = runtime.totalMemory() - runtime.freeMemory();
+//        System.out.printf(" -> %d", m2 - m1);
+//        System.gc();
+//        long m3 = runtime.totalMemory() - runtime.freeMemory();
+//        System.out.printf(" -> %d\n", m3 - m1);
 
         // TODO: support doubly and triply indirect
         assert !buffer.hasRemaining();

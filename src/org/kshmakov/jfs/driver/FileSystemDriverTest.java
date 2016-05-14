@@ -9,7 +9,7 @@ import org.kshmakov.jfs.io.FileAccessor;
 import org.kshmakov.jfs.io.HeaderOffsets;
 
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.nio.ByteBuffer;
 import java.util.Map;
 
 import static org.junit.Assert.*;
@@ -118,13 +118,13 @@ public class FileSystemDriverTest {
 
         DirectoryDescriptor rootDir = driver.rootInode();
 
-        for (int i = 0; i < 15; i++) {
+        for (int i = 0; i < 15; ++i) {
             driver.tryAddDirectory(rootDir, prefix + Integer.toString(i));
             assertEquals(29 - i, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
             assertEquals(46 - i, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
         }
 
-        for (int i = 15; i < 30; i++) {
+        for (int i = 15; i < 30; ++i) {
             driver.tryAddDirectory(rootDir, prefix + Integer.toString(i));
             assertEquals(29 - i, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
             assertEquals(45 - i, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
@@ -185,6 +185,38 @@ public class FileSystemDriverTest {
         TestCommon.writelnLinesTo(driver, file, input);
         String[] output = TestCommon.readLinesFrom(driver, file);
         assertArrayEquals(input, output);
+    }
+
+    @Test
+    public void test09() throws IOException, JFSException {
+        DirectoryDescriptor rootDir = driver.rootInode();
+
+        String fileName = "file.txt";
+
+        int bufferSize = (1 << 12) * 12;
+        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+
+        for (int i = 0; i < bufferSize; ++i) {
+            buffer.put((byte) (i % 100));
+        }
+
+        for (int repetition = 0; repetition < 5; ++repetition) {
+            buffer.rewind();
+
+            assertEquals(30, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+            assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+            FileDescriptor file = driver.tryAddFile(rootDir, fileName);
+            driver.tryWriteIntoFile(file, buffer, 0);
+
+            assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+            assertEquals(35, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+
+            driver.tryRemoveFile(rootDir, fileName);
+
+            assertEquals(30, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
+            assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
+        }
     }
 
     @After
