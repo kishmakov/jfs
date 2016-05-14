@@ -1,6 +1,7 @@
 package org.kshmakov.jfs.io.primitives;
 
 import org.kshmakov.jfs.JFSException;
+import org.kshmakov.jfs.driver.DataFrame;
 import org.kshmakov.jfs.io.Parameters;
 
 import java.nio.ByteBuffer;
@@ -45,13 +46,15 @@ public class DirectoryBlock extends BlockBase {
     }
 
     @Override
-    public ByteBuffer toBuffer() {
-        ByteBuffer buffer = super.toBuffer();
+    public DataFrame toDataFrame() {
+        DataFrame frame = super.toDataFrame();
 
-        buffer.putShort(myUnusedSize);
-        entries.forEach(item -> buffer.put(item.toBuffer()));
+        // TODO: complete refactoring
 
-        buffer.rewind();
-        return buffer;
+        frame.putShort(myUnusedSize);
+        entries.forEach(item -> frame.put(item.toBuffer()));
+
+        frame.rewind();
+        return frame;
     }
 }

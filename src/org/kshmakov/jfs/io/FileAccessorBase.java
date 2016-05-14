@@ -95,7 +95,7 @@ abstract public class FileAccessorBase {
 
     public void writeBlock(BlockBase block, int blockId) throws JFSException {
         try {
-            ByteBuffer buffer = block.toBuffer();
+            ByteBuffer buffer = block.toDataFrame();
             buffer.flip();
             buffer.limit(buffer.capacity());
             assert blockOffset(blockId) + buffer.capacity() <= fileSize;

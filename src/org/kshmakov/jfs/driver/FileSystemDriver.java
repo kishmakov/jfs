@@ -113,13 +113,16 @@ public final class FileSystemDriver {
     }
 
     @GuardedBy("myInodesLocks")
-    private void writeIntoFile(int inodeId, ByteBuffer buffer, int offset) throws JFSException {
-        buffer.rewind();
+    private void writeIntoFile(int inodeId, DataFrame frame, int offset) throws JFSException {
         int size = myAccessor.readInodeInt(inodeId, InodeOffsets.OBJECT_SIZE);
-        if (size < offset + buffer.capacity()) {
-            size = offset + buffer.capacity();
+        if (size < offset + frame.length) {
+            size = offset + frame.length;
             myAccessor.writeInodeInt(size, inodeId, InodeOffsets.OBJECT_SIZE);
         }
+
+        ByteBuffer buffer = ByteBuffer.allocate(frame.length);
+        buffer.put(frame.bytes, frame.offset, frame.length);
+        buffer.rewind();
 
         for (int directId = 0; directId < Parameters.DIRECT_POINTERS_NUMBER && buffer.hasRemaining(); ++directId) {
             if (offset >= Parameters.DATA_BLOCK_SIZE) {
@@ -162,13 +165,13 @@ public final class FileSystemDriver {
     }
 
     @GuardedBy("myInodesLocks")
-    private void tryWriteIntoFile(int inodeId, ByteBuffer buffer, int offset) throws JFSException {
+    private void tryWriteIntoFile(int inodeId, DataFrame frame, int offset) throws JFSException {
         final int currentSize = myAccessor.readInodeInt(inodeId, InodeOffsets.OBJECT_SIZE);
 
         DriverHelper.refuseIf(currentSize < offset, "requested offset is bigger than file size");
-        DriverHelper.refuseIf(offset + (long) buffer.capacity() > Parameters.MAX_FILE_SIZE, "operation will produce too big file");
+        DriverHelper.refuseIf(offset + (long) frame.length > Parameters.MAX_FILE_SIZE, "operation will produce too big file");
 
-        final int newSize = Math.max(currentSize, offset + buffer.capacity());
+        final int newSize = Math.max(currentSize, offset + frame.length);
 
         final int blocksHave = InodeHelper.blocksForSize(currentSize);
         final int blocksNeed = InodeHelper.blocksForSize(newSize);
@@ -178,18 +181,17 @@ public final class FileSystemDriver {
         }
 
         myAccessor.writeInodeInt(newSize, inodeId, InodeOffsets.OBJECT_SIZE);
-        writeIntoFile(inodeId, buffer, offset);
+        writeIntoFile(inodeId, frame, offset);
     }
 
     @GuardedBy("myInodesLocks")
-    private void tryRewriteFile(int inodeId, ByteBuffer buffer) throws JFSException {
+    private void tryRewriteFile(int inodeId, DataFrame frame) throws JFSException {
         final int currentSize = myAccessor.readInodeInt(inodeId, InodeOffsets.OBJECT_SIZE);
-        final int newSize = buffer.capacity();
 
-        DriverHelper.refuseIf(newSize > Parameters.MAX_FILE_SIZE, "operation will produce too big file");
+        DriverHelper.refuseIf(frame.length > Parameters.MAX_FILE_SIZE, "operation will produce too big file");
 
         final int blocksHave = InodeHelper.blocksForSize(currentSize);
-        final int blocksNeed = InodeHelper.blocksForSize(newSize);
+        final int blocksNeed = InodeHelper.blocksForSize(frame.length);
 
         if (blocksNeed > blocksHave) {
             growInode(inodeId, blocksNeed - blocksHave);
@@ -197,7 +199,7 @@ public final class FileSystemDriver {
             truncateInode(inodeId, blocksHave - blocksNeed);
         }
 
-        writeIntoFile(inodeId, buffer, 0);
+        writeIntoFile(inodeId, frame, 0);
     }
 
     @NotNull
@@ -222,8 +224,8 @@ public final class FileSystemDriver {
     private void removeFile(int inodeId, ArrayList<DirectoryEntry> siblings, DirectoryEntry entry) throws JFSException {
         assert entry.type == Parameters.EntryType.FILE;
         siblings.removeIf(e -> e.equals(entry));
-        tryRewriteFile(inodeId, ByteBufferHelper.toBuffer(siblings));
-        tryRewriteFile(entry.inodeId, ByteBuffer.allocate(0));
+        tryRewriteFile(inodeId, ByteBufferHelper.toDataFrame(siblings));
+        tryRewriteFile(entry.inodeId, new DataFrame(new byte[0]));
         myInodesStack.push(entry.inodeId);
     }
 
@@ -231,7 +233,7 @@ public final class FileSystemDriver {
     private void removeDirectory(int inodeId, ArrayList<DirectoryEntry> siblings, DirectoryEntry entry) throws JFSException {
         assert entry.type == Parameters.EntryType.DIRECTORY;
         siblings.removeIf(e -> e.equals(entry));
-        tryRewriteFile(inodeId, ByteBufferHelper.toBuffer(siblings));
+        tryRewriteFile(inodeId, ByteBufferHelper.toDataFrame(siblings));
 
         ArrayList<DirectoryEntry> entries = new ArrayList<DirectoryEntry>(1);
         entries.add(entry);
@@ -268,9 +270,9 @@ public final class FileSystemDriver {
             DriverHelper.refuseIf(EntriesHelper.find(entries, name) != null, name + " is already in use");
             int newInodeId = myInodesStack.pop(new AllocatedInode(Parameters.EntryType.DIRECTORY, descriptor.inodeId));
             DirectoryBlock newDirectory = DirectoryBlock.emptyDirectoryBlock(newInodeId, descriptor.inodeId);
-            tryRewriteFile(newInodeId, newDirectory.toBuffer());
+            tryRewriteFile(newInodeId, newDirectory.toDataFrame());
             entries.add(new DirectoryEntry(newInodeId, Parameters.EntryType.DIRECTORY, name));
-            tryRewriteFile(descriptor.inodeId, ByteBufferHelper.toBuffer(entries));
+            tryRewriteFile(descriptor.inodeId, ByteBufferHelper.toDataFrame(entries));
             return new DirectoryDescriptor(newInodeId);
         } finally {
             writeLock.unlock();
@@ -313,7 +315,7 @@ public final class FileSystemDriver {
             int newInodeId = myInodesStack.pop(new AllocatedInode(Parameters.EntryType.FILE, descriptor.inodeId));
             tryRewriteFile(newInodeId, ByteBuffer.allocate(0));
             entries.add(new DirectoryEntry(newInodeId, Parameters.EntryType.FILE, name));
-            tryRewriteFile(descriptor.inodeId, ByteBufferHelper.toBuffer(entries));
+            tryRewriteFile(descriptor.inodeId, ByteBufferHelper.toDataFrame(entries));
             return new FileDescriptor(newInodeId);
         } finally {
             writeLock.unlock();
@@ -349,14 +351,15 @@ public final class FileSystemDriver {
         }
     }
 
-    public void tryWriteIntoFile(FileDescriptor descriptor, ByteBuffer buffer, int offset) throws JFSException {
+    public void tryWriteIntoFile(FileDescriptor descriptor, DataFrame frame, int offset) throws JFSException {
         Lock writeLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].writeLock();
         writeLock.lock();
 
         try {
             assert (byte) (myAccessor.readInodeInt(descriptor.inodeId, InodeOffsets.INODE_DESCRIPTION) >> 24) ==
                     Parameters.typeToByte(Parameters.EntryType.FILE);
-            tryWriteIntoFile(descriptor.inodeId, buffer, offset);
+
+            tryWriteIntoFile(descriptor.inodeId, frame, offset);
         } finally {
             writeLock.unlock();
         }
@@ -375,7 +378,7 @@ public final class FileSystemDriver {
         }
     }
 
-    public void tryAppendToFile(FileDescriptor descriptor, ByteBuffer buffer) throws JFSException {
+    public void tryAppendToFile(FileDescriptor descriptor, DataFrame frame) throws JFSException {
         Lock writeLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].writeLock();
         writeLock.lock();
 
@@ -383,7 +386,8 @@ public final class FileSystemDriver {
             assert (byte) (myAccessor.readInodeInt(descriptor.inodeId, InodeOffsets.INODE_DESCRIPTION) >> 24) ==
                     Parameters.typeToByte(Parameters.EntryType.FILE);
             int offset = myAccessor.readInodeInt(descriptor.inodeId, InodeOffsets.OBJECT_SIZE);
-            tryWriteIntoFile(descriptor.inodeId, buffer, offset);
+
+            tryWriteIntoFile(descriptor.inodeId, frame, offset);
         } finally {
             writeLock.unlock();
         }

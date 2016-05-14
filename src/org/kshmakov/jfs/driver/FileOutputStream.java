@@ -40,10 +40,7 @@ public class FileOutputStream extends OutputStream {
                     return;
                 }
 
-                ByteBuffer buffer = ByteBuffer.allocate(len);
-                buffer.put(b, off, len);
-
-                fs.tryAppendToFile(fd, buffer);
+                fs.tryAppendToFile(fd, new DataFrame(b, off, len));
             } catch (JFSException e) {
                 throw new IOException(e.getMessage());
             }

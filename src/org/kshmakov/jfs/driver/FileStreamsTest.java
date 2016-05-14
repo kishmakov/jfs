@@ -119,7 +119,7 @@ public class FileStreamsTest {
         for (int repetition = 0; repetition < 5; ++repetition) {
             OutputStream outputStream = new FileOutputStream(fs, fd);
 
-            byte[] outBytes = new byte[Parameters.DIRECT_POINTERS_NUMBER * 4096];
+            byte[] outBytes = new byte[Parameters.MAX_FILE_SIZE];
 
             for (int i = 0; i < outBytes.length; ++i) {
                 outBytes[i] = (byte) (i % 100);
@@ -133,7 +133,7 @@ public class FileStreamsTest {
             outputStream.close();
 
             InputStream inputStream = new FileInputStream(fs, fd);
-            byte[] inBytes = new byte[Parameters.DIRECT_POINTERS_NUMBER * 4096];
+            byte[] inBytes = new byte[Parameters.MAX_FILE_SIZE];
             inputStream.read(inBytes);
 
             for (int i = 0; i < inBytes.length; ++i) {

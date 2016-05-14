@@ -1,6 +1,7 @@
 package org.kshmakov.jfs.driver.tools;
 
 import org.kshmakov.jfs.JFSException;
+import org.kshmakov.jfs.driver.DataFrame;
 import org.kshmakov.jfs.io.primitives.DirectoryBlock;
 import org.kshmakov.jfs.io.primitives.DirectoryEntry;
 
@@ -15,32 +16,36 @@ public interface ByteBufferHelper {
         return result;
     }
 
-    static ByteBuffer toBuffer(ArrayList<DirectoryEntry> entries) throws JFSException {
+    static DataFrame toDataFrame(ArrayList<DirectoryEntry> entries) throws JFSException {
         ArrayList<ByteBuffer> buffers = new ArrayList<ByteBuffer>();
 
         DirectoryBlock block = new DirectoryBlock();
         for (DirectoryEntry entry : entries) {
             if (!block.tryInsert(entry)) {
-                buffers.add(block.toBuffer());
+                buffers.add(block.toDataFrame());
                 block = new DirectoryBlock();
                 boolean result = block.tryInsert(entry);
                 assert result;
             }
         }
 
-        buffers.add(block.toBuffer());
+        buffers.add(block.toDataFrame());
 
         int totalCapacity = 0;
         for (ByteBuffer buffer : buffers) {
             totalCapacity += buffer.capacity();
         }
 
-        ByteBuffer result = ByteBuffer.allocate(totalCapacity);
+        byte[] result = new byte[totalCapacity];
+        int offset = 0;
+
         for (ByteBuffer buffer : buffers) {
             buffer.rewind();
-            result.put(buffer);
+            int oldOffset = offset;
+            offset += buffer.capacity();
+            buffer.get(result, oldOffset, buffer.capacity());
         }
 
-        return result;
+        return new DataFrame(result);
     }
 }

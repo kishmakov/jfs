@@ -7,6 +7,7 @@ import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.TestCommon;
 import org.kshmakov.jfs.io.FileAccessor;
 import org.kshmakov.jfs.io.HeaderOffsets;
+import org.kshmakov.jfs.io.Parameters;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -193,21 +194,19 @@ public class FileSystemDriverTest {
 
         String fileName = "file.txt";
 
-        int bufferSize = (1 << 12) * 12;
-        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+        int bufferSize = Parameters.MAX_FILE_SIZE;
+        byte[] bytes = new byte[bufferSize];
 
         for (int i = 0; i < bufferSize; ++i) {
-            buffer.put((byte) (i % 100));
+            bytes[i] = (byte) (i % 100);
         }
 
         for (int repetition = 0; repetition < 5; ++repetition) {
-            buffer.rewind();
-
             assertEquals(30, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
             assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
 
             FileDescriptor file = driver.tryAddFile(rootDir, fileName);
-            driver.tryWriteIntoFile(file, buffer, 0);
+            driver.tryWriteIntoFile(file, new DataFrame(bytes), 0);
 
             assertEquals(29, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_INODES));
             assertEquals(35, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
