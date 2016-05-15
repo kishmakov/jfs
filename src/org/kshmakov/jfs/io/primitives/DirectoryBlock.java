@@ -25,8 +25,10 @@ public class DirectoryBlock extends BlockBase {
         myUnusedSize = (short) (Parameters.DATA_BLOCK_SIZE - HEADER_SIZE);
     }
 
-    public DirectoryBlock(ByteBuffer buffer) throws JFSException {
-        super(buffer.capacity());
+    public DirectoryBlock(byte[] bytes) throws JFSException {
+        super(bytes);
+
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
         myUnusedSize = buffer.getShort();
 
         while (buffer.position() + myUnusedSize < Parameters.DATA_BLOCK_SIZE) {

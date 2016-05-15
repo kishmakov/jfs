@@ -43,15 +43,15 @@ public class FileInputStream extends InputStream {
                     return 0;
                 }
 
-                ByteBuffer buffer = fs.tryReadFromFile(fd, myOffset, len);
-                if (buffer.capacity() == 0) {
+                byte[] bytes = fs.tryReadFromFile(fd, myOffset, len);
+                if (bytes.length == 0) {
                     return  -1;
                 }
 
-                myOffset += buffer.capacity();
-                buffer.rewind();
-                buffer.get(b, off, buffer.capacity());
-                return buffer.capacity();
+                myOffset += bytes.length;
+                ByteBuffer buffer = ByteBuffer.wrap(bytes);
+                buffer.get(b, off, bytes.length);
+                return bytes.length;
             } catch (JFSException e) {
                 throw new IOException(e.getMessage());
             }

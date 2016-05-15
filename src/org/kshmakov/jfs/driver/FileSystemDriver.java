@@ -89,7 +89,7 @@ public final class FileSystemDriver {
 
     @NotNull
     @GuardedBy("myInodesLocks")
-    private ByteBuffer readFromFile(int inodeId, int offset, int length) throws JFSException {
+    private byte[] readFromFile(int inodeId, int offset, int length) throws JFSException {
         ByteBuffer buffer = ByteBuffer.allocate(length);
 
         for (int directId = 0; directId < Parameters.DIRECT_POINTERS_NUMBER && buffer.hasRemaining(); ++directId) {
@@ -99,16 +99,16 @@ public final class FileSystemDriver {
             }
 
             int blockId = myAccessor.readInodeInt(inodeId, InodeOffsets.DIRECT_POINTERS[directId]);
-            ByteBuffer blockBuffer = myAccessor.readBlock(blockId);
-            blockBuffer.position(offset);
+            byte[] blockBytes = myAccessor.readBlock(blockId);
+            int maxLength = Math.min(buffer.remaining(), blockBytes.length - offset);
+            buffer.put(blockBytes, offset, maxLength);
             offset = 0;
-            buffer.put(ByteBufferHelper.advance(blockBuffer, buffer.remaining()));
         }
 
         // TODO: support doubly and triply indirect
         assert !buffer.hasRemaining();
 
-        return buffer;
+        return buffer.array();
     }
 
     @GuardedBy("myInodesLocks")
@@ -130,13 +130,12 @@ public final class FileSystemDriver {
             }
 
             int blockId = myAccessor.readInodeInt(inodeId, InodeOffsets.DIRECT_POINTERS[directId]);
-            ByteBuffer blockBuffer = myAccessor.readBlock(blockId);
-            blockBuffer.position(offset);
+            byte[] blockBytes = myAccessor.readBlock(blockId);
+            ByteBuffer blockBuffer = ByteBuffer.wrap(blockBytes, offset, blockBytes.length - offset);
             offset = 0;
 
             blockBuffer.put(ByteBufferHelper.advance(buffer, blockBuffer.remaining()));
-
-            myAccessor.writeBlock(new BlockBase(blockBuffer), blockId);
+            myAccessor.writeBlock(new BlockBase(blockBytes), blockId);
         }
 
 //        Runtime runtime = Runtime.getRuntime();
@@ -156,7 +155,7 @@ public final class FileSystemDriver {
 
     @NotNull
     @GuardedBy("myInodesLocks")
-    private ByteBuffer tryReadFromFile(int inodeId, int offset, int maxLength) throws JFSException {
+    private byte[] tryReadFromFile(int inodeId, int offset, int maxLength) throws JFSException {
         final int currentSize = myAccessor.readInodeInt(inodeId, InodeOffsets.OBJECT_SIZE);
         DriverHelper.refuseIf(currentSize < offset, "requested offset is bigger than file size");
         maxLength = Math.min(maxLength, currentSize - offset);
@@ -337,7 +336,7 @@ public final class FileSystemDriver {
     }
 
     @NotNull
-    public ByteBuffer tryReadFromFile(FileDescriptor descriptor, int offset, int maxLength) throws JFSException {
+    public byte[] tryReadFromFile(FileDescriptor descriptor, int offset, int maxLength) throws JFSException {
         Lock readLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].readLock();
         readLock.lock();
 

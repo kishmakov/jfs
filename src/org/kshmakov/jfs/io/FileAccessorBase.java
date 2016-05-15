@@ -82,12 +82,11 @@ abstract public class FileAccessorBase {
         writeInt(number, blockOffset(blockId));
     }
 
-    public ByteBuffer readBlock(int blockId) throws JFSException {
+    public byte[] readBlock(int blockId) throws JFSException {
         try {
             ByteBuffer buffer = newBuffer(Parameters.DATA_BLOCK_SIZE);
             myChannel.read(buffer, blockOffset(blockId));
-            buffer.rewind();
-            return buffer;
+            return buffer.array();
         } catch (IOException e) {
             throw new JFSBadFileException("could not read buffer from file: " + e.getMessage());
         }
@@ -96,8 +95,6 @@ abstract public class FileAccessorBase {
     public void writeBlock(BlockBase block, int blockId) throws JFSException {
         try {
             ByteBuffer buffer = ByteBuffer.wrap(block.toBytes());
-            buffer.rewind();
-
             assert blockOffset(blockId) + buffer.capacity() <= fileSize;
             int result = myChannel.write(buffer, blockOffset(blockId));
             assert result == buffer.capacity();
