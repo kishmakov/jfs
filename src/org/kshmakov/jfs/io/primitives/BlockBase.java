@@ -1,6 +1,5 @@
 package org.kshmakov.jfs.io.primitives;
 
-import org.kshmakov.jfs.driver.DataFrame;
 import org.kshmakov.jfs.io.FileAccessor;
 import org.kshmakov.jfs.io.Parameters;
 
@@ -21,7 +20,7 @@ public class BlockBase {
         FileAccessor.newBuffer(bytes).putInt(nextId);
     }
 
-    public DataFrame toDataFrame() {
-        return new DataFrame(bytes);
+    public byte[] toBytes() {
+        return bytes;
     }
 }

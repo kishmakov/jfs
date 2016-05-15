@@ -248,7 +248,7 @@ public final class FileSystemDriver {
                 entries.addAll(getEntries(lastEntry.inodeId));
             }
 
-            tryRewriteFile(lastEntry.inodeId, ByteBuffer.allocate(0));
+            tryRewriteFile(lastEntry.inodeId, new DataFrame(new byte[0]));
             myInodesStack.push(lastEntry.inodeId);
         }
     }
@@ -270,7 +270,7 @@ public final class FileSystemDriver {
             DriverHelper.refuseIf(EntriesHelper.find(entries, name) != null, name + " is already in use");
             int newInodeId = myInodesStack.pop(new AllocatedInode(Parameters.EntryType.DIRECTORY, descriptor.inodeId));
             DirectoryBlock newDirectory = DirectoryBlock.emptyDirectoryBlock(newInodeId, descriptor.inodeId);
-            tryRewriteFile(newInodeId, newDirectory.toDataFrame());
+            tryRewriteFile(newInodeId, new DataFrame(newDirectory.toBytes()));
             entries.add(new DirectoryEntry(newInodeId, Parameters.EntryType.DIRECTORY, name));
             tryRewriteFile(descriptor.inodeId, ByteBufferHelper.toDataFrame(entries));
             return new DirectoryDescriptor(newInodeId);
@@ -313,7 +313,7 @@ public final class FileSystemDriver {
             ArrayList<DirectoryEntry> entries = getEntries(descriptor.inodeId);
             DriverHelper.refuseIf(EntriesHelper.find(entries, name) != null, name + " is already in use");
             int newInodeId = myInodesStack.pop(new AllocatedInode(Parameters.EntryType.FILE, descriptor.inodeId));
-            tryRewriteFile(newInodeId, ByteBuffer.allocate(0));
+            tryRewriteFile(newInodeId, new DataFrame(new byte[0]));
             entries.add(new DirectoryEntry(newInodeId, Parameters.EntryType.FILE, name));
             tryRewriteFile(descriptor.inodeId, ByteBufferHelper.toDataFrame(entries));
             return new FileDescriptor(newInodeId);

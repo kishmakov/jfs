@@ -46,15 +46,14 @@ public class DirectoryBlock extends BlockBase {
     }
 
     @Override
-    public DataFrame toDataFrame() {
-        DataFrame frame = super.toDataFrame();
+    public byte[] toBytes() {
+        byte[] result = super.toBytes();
 
-        // TODO: complete refactoring
+        ByteBuffer buffer = ByteBuffer.wrap(result);
 
-        frame.putShort(myUnusedSize);
-        entries.forEach(item -> frame.put(item.toBuffer()));
+        buffer.putShort(myUnusedSize);
+        entries.forEach(item -> buffer.put(item.toBytes()));
 
-        frame.rewind();
-        return frame;
+        return result;
     }
 }

@@ -17,35 +17,31 @@ public interface ByteBufferHelper {
     }
 
     static DataFrame toDataFrame(ArrayList<DirectoryEntry> entries) throws JFSException {
-        ArrayList<ByteBuffer> buffers = new ArrayList<ByteBuffer>();
+        ArrayList<byte[]> frames = new ArrayList<byte[]>();
 
         DirectoryBlock block = new DirectoryBlock();
         for (DirectoryEntry entry : entries) {
             if (!block.tryInsert(entry)) {
-                buffers.add(block.toDataFrame());
+                frames.add(block.toBytes());
                 block = new DirectoryBlock();
                 boolean result = block.tryInsert(entry);
                 assert result;
             }
         }
 
-        buffers.add(block.toDataFrame());
+        frames.add(block.toBytes());
 
         int totalCapacity = 0;
-        for (ByteBuffer buffer : buffers) {
-            totalCapacity += buffer.capacity();
+        for (byte[] frame : frames) {
+            totalCapacity += frame.length;
         }
 
-        byte[] result = new byte[totalCapacity];
-        int offset = 0;
+        ByteBuffer result = ByteBuffer.allocate(totalCapacity);
 
-        for (ByteBuffer buffer : buffers) {
-            buffer.rewind();
-            int oldOffset = offset;
-            offset += buffer.capacity();
-            buffer.get(result, oldOffset, buffer.capacity());
+        for (byte[] frame : frames) {
+            result.put(frame);
         }
 
-        return new DataFrame(result);
+        return new DataFrame(result.array());
     }
 }

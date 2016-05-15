@@ -2,6 +2,7 @@ package org.kshmakov.jfs.io;
 
 import net.jcip.annotations.NotThreadSafe;
 import org.kshmakov.jfs.JFSException;
+import org.kshmakov.jfs.driver.DataFrame;
 import org.kshmakov.jfs.io.primitives.BlockBase;
 import org.kshmakov.jfs.io.primitives.InodeBase;
 
@@ -95,9 +96,9 @@ abstract public class FileAccessorBase {
 
     public void writeBlock(BlockBase block, int blockId) throws JFSException {
         try {
-            ByteBuffer buffer = block.toDataFrame();
-            buffer.flip();
-            buffer.limit(buffer.capacity());
+            ByteBuffer buffer = ByteBuffer.wrap(block.toBytes());
+            buffer.rewind();
+
             assert blockOffset(blockId) + buffer.capacity() <= fileSize;
             int result = myChannel.write(buffer, blockOffset(blockId));
             assert result == buffer.capacity();

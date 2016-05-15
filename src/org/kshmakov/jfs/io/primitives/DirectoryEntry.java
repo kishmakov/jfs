@@ -35,7 +35,7 @@ public class DirectoryEntry {
         return (short) (ENTRY_HEADER_SIZE + myNameBytes.length);
     }
 
-    public ByteBuffer toBuffer() {
+    public byte[] toBytes() {
         ByteBuffer buffer = FileAccessor.newBuffer(size());
 
         buffer.putInt(inodeId);
@@ -44,6 +44,6 @@ public class DirectoryEntry {
         buffer.put(myNameBytes);
         buffer.rewind();
 
-        return buffer;
+        return buffer.array();
     }
 }
