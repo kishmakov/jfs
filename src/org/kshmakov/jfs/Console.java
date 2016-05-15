@@ -2,7 +2,7 @@ package org.kshmakov.jfs;
 
 import org.kshmakov.jfs.driver.DirectoryDescriptor;
 import org.kshmakov.jfs.driver.FileSystemDriver;
-import org.kshmakov.jfs.driver.JFSRefuseException;
+import org.kshmakov.jfs.driver.JFSException;
 import org.kshmakov.jfs.io.FileFormatter;
 import org.kshmakov.jfs.io.JFSBadFileException;
 import org.kshmakov.jfs.io.NameHelper;
@@ -13,6 +13,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
 
 public class Console {
     private FileSystemDriver myDriver = null;
@@ -56,7 +57,7 @@ public class Console {
         return builder.append("> ").toString();
     }
 
-    private String changeDirectory(String[] command) throws JFSException {
+    private String changeDirectory(String[] command) {
         if (command.length != 1 && command.length != 2) {
             return "invalid arguments\n" + myUsages.get(command[0]);
         }
@@ -67,12 +68,16 @@ public class Console {
             return "";
         }
 
-        DirectoryDescriptor newDescriptor = myDriver.getDirectories(myCurrentDir).get(command[1]);
-        if (newDescriptor == null) {
-            return "no such directory";
-        }
+        try {
+            DirectoryDescriptor newDescriptor = myDriver.getDirectories(myCurrentDir).get(command[1]);
+            if (newDescriptor == null) {
+                return "no such directory";
+            }
 
-        myCurrentDir = newDescriptor;
+            myCurrentDir = newDescriptor;
+        } catch (JFSException e) {
+            return "could not change directory, reason: " + e.getMessage();
+        }
 
         switch (command[1]) {
             case ".":
@@ -89,7 +94,7 @@ public class Console {
         return "";
     }
 
-    private String crateFile(String[] command) throws JFSException {
+    private String crateFile(String[] command) {
         if (command.length < 2) {
             return "file name is not provided\n " + myUsages.get(command[0]);
         }
@@ -108,7 +113,7 @@ public class Console {
 
         if (size < Parameters.MIN_FS_SIZE || size > Parameters.MAX_FS_SIZE) {
             String range = "[" + Long.toString(Parameters.MIN_FS_SIZE) + ", " + Long.toString(Parameters.MAX_FS_SIZE) + "]";
-            throw new JFSBadFileException("requested size is not in range " + range);
+            return  "requested size is not in range " + range;
         }
 
         try {
@@ -121,7 +126,7 @@ public class Console {
         return command[1] + " created";
     }
 
-    private String formatFile(String[] command) throws JFSException {
+    private String formatFile(String[] command) {
         if (command.length < 2) {
             return "file name is not provided\n" + myUsages.get(command[0]);
         }
@@ -129,7 +134,7 @@ public class Console {
         try {
             FileFormatter formatter = new FileFormatter(command[1]);
             formatter.format();
-        } catch (JFSBadFileException e) {
+        } catch (JFSException e) {
             return "could not format file, reason: " + e.getMessage();
         }
 
@@ -178,7 +183,7 @@ public class Console {
         return builder.toString();
     }
 
-    private String makeDirectory(String[] command) throws JFSException {
+    private String makeDirectory(String[] command) throws Exception {
         if (myDriver == null) {
             return "file system is not mounted";
         }
@@ -189,14 +194,16 @@ public class Console {
 
         try {
             myDriver.tryAddDirectory(myCurrentDir, command[1]);
-        } catch (JFSRefuseException e) {
+        } catch (JFSBadFileException e) {
+            throw new Exception("underlying file is corrupted");
+        } catch (JFSException e) {
             return "could not create directory: " + e.getMessage();
         }
 
         return "";
     }
 
-    private String mountFile(String[] command) throws JFSException {
+    private String mountFile(String[] command) {
         if (command.length < 2)
             return "file name is not provided\n" + myUsages.get(command[0]);
 
@@ -208,14 +215,14 @@ public class Console {
             myCurrentDir = myDriver.rootInode();
             myCurrentPath = new ArrayList<String>();
             myCurrentFile = "@" + command[1] + ":";
-        } catch (JFSBadFileException e) {
-            return "file " + command[1] + " could not be mounted: " + e.getMessage();
+        } catch (JFSException e) {
+            return "command could not be executed, reason: " + e.getMessage();
         }
 
         return "";
     }
 
-    private String removeEntry(String[] command) throws JFSException {
+    private String removeEntry(String[] command) throws Exception {
         if (command.length != 2 && command.length != 3) {
             return "invalid arguments\n" + myUsages.get(command[0]);
         }
@@ -230,7 +237,9 @@ public class Console {
             } else {
                 myDriver.tryRemoveFile(myCurrentDir, command[1]);
             }
-        } catch (JFSRefuseException e) {
+        } catch (JFSBadFileException e) {
+            throw new Exception("underlying file is corrupted");
+        } catch (JFSException e) {
             return "cannot remove " + command[command.length - 1] + ": " + e.getMessage();
         }
 
@@ -238,7 +247,7 @@ public class Console {
         return "";
     }
 
-    private String createFile(String[] command) throws JFSException {
+    private String createFile(String[] command) throws Exception {
         if (myDriver == null) {
             return "file system is not mounted";
         }
@@ -249,7 +258,9 @@ public class Console {
 
         try {
             myDriver.tryAddFile(myCurrentDir, command[1]);
-        } catch (JFSRefuseException e) {
+        } catch (JFSBadFileException e) {
+            throw new Exception("underlying file is corrupted");
+        } catch (JFSException e) {
             return "could not create file: " + e.getMessage();
         }
 
@@ -265,7 +276,7 @@ public class Console {
         return "";
     }
 
-    public String execute(String[] command) {
+    public String execute(String[] command) throws Exception {
         assert command.length > 0;
 
         try {
@@ -293,9 +304,11 @@ public class Console {
             }
 
             return "unsupported command";
-        } catch (JFSException e) {
+        } catch (JFSBadFileException e) {
             umountFile();
             e.printStackTrace(System.out);
+            throw new Exception("underlying file is corrupted");
+        } catch (JFSException e) {
             return "logic error encountered: " + e.getMessage();
         }
     }

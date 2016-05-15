@@ -1,7 +1,5 @@
 package org.kshmakov.jfs.driver;
 
-import org.kshmakov.jfs.JFSException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;

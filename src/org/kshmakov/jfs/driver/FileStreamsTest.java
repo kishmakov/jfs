@@ -3,7 +3,6 @@ package org.kshmakov.jfs.driver;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.TestCommon;
 import org.kshmakov.jfs.io.FileAccessor;
 import org.kshmakov.jfs.io.HeaderOffsets;

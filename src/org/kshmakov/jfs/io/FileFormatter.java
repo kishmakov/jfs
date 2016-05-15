@@ -1,6 +1,6 @@
 package org.kshmakov.jfs.io;
 
-import org.kshmakov.jfs.JFSException;
+import org.kshmakov.jfs.driver.JFSException;
 import org.kshmakov.jfs.io.primitives.AllocatedInode;
 import org.kshmakov.jfs.io.primitives.BlockBase;
 import org.kshmakov.jfs.io.primitives.DirectoryBlock;

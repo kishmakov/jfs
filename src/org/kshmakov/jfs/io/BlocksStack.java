@@ -2,7 +2,7 @@ package org.kshmakov.jfs.io;
 
 import net.jcip.annotations.GuardedBy;
 import net.jcip.annotations.ThreadSafe;
-import org.kshmakov.jfs.JFSException;
+import org.kshmakov.jfs.driver.JFSException;
 import org.kshmakov.jfs.driver.tools.DriverHelper;
 
 import java.util.ArrayList;

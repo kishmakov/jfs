@@ -3,7 +3,6 @@ package org.kshmakov.jfs.driver;
 import com.sun.istack.internal.NotNull;
 import net.jcip.annotations.GuardedBy;
 import net.jcip.annotations.ThreadSafe;
-import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.driver.tools.ByteBufferHelper;
 import org.kshmakov.jfs.driver.tools.DriverHelper;
 import org.kshmakov.jfs.driver.tools.EntriesHelper;

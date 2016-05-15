@@ -1,8 +1,7 @@
 package org.kshmakov.jfs.io;
 
 import net.jcip.annotations.NotThreadSafe;
-import org.kshmakov.jfs.JFSException;
-import org.kshmakov.jfs.driver.DataFrame;
+import org.kshmakov.jfs.driver.JFSException;
 import org.kshmakov.jfs.io.primitives.BlockBase;
 import org.kshmakov.jfs.io.primitives.InodeBase;
 

@@ -1,7 +1,6 @@
 package org.kshmakov.jfs.io.primitives;
 
-import org.kshmakov.jfs.JFSException;
-import org.kshmakov.jfs.driver.DataFrame;
+import org.kshmakov.jfs.driver.JFSException;
 import org.kshmakov.jfs.io.Parameters;
 
 import java.nio.ByteBuffer;

@@ -1,11 +1,11 @@
 package org.kshmakov.jfs.driver.tools;
 
-import org.kshmakov.jfs.driver.JFSRefuseException;
+import org.kshmakov.jfs.driver.JFSException;
 
 public interface DriverHelper {
-    static void refuseIf(boolean condition, String message) throws JFSRefuseException {
+    static void refuseIf(boolean condition, String message) throws JFSException {
         if (condition) {
-            throw new JFSRefuseException(message);
+            throw new JFSException(message);
         }
     }
 }

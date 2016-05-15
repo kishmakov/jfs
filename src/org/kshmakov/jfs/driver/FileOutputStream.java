@@ -1,10 +1,7 @@
 package org.kshmakov.jfs.driver;
 
-import org.kshmakov.jfs.JFSException;
-
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
 
 public class FileOutputStream extends OutputStream {
     private FileDescriptor fd;

@@ -1,6 +1,6 @@
 package org.kshmakov.jfs.io;
 
-import org.kshmakov.jfs.JFSException;
+import org.kshmakov.jfs.driver.JFSException;
 
 import java.io.UnsupportedEncodingException;
 
@@ -9,7 +9,7 @@ public interface NameHelper {
     String CHARSET = "UTF-8";
     short MAX_NAME_SIZE = 255;
 
-    static String inspect(String name) throws JFSException {
+    static String inspect(String name) {
         if (name.isEmpty()) {
             return "entry name must not be empty";
         }
@@ -23,7 +23,7 @@ public interface NameHelper {
                 return "entry name length limit exceeded";
             }
         } catch (UnsupportedEncodingException e) {
-            throw new JFSException("jfs requires " + CHARSET + " support to be turned on");
+            return "jfs requires " + CHARSET + " support to be turned on";
         }
 
         return "";

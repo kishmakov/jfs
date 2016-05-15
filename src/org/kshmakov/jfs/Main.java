@@ -6,7 +6,7 @@ import java.util.Scanner;
 
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         Console console = new Console();
 
         if (args.length > 0) {
@@ -15,7 +15,7 @@ public class Main {
                 while (scanner.hasNextLine()) {
                     console.execute(scanner.nextLine().trim().split(" "));
                 }
-            } catch (FileNotFoundException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 

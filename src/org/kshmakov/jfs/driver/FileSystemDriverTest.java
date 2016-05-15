@@ -3,14 +3,12 @@ package org.kshmakov.jfs.driver;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.kshmakov.jfs.JFSException;
 import org.kshmakov.jfs.TestCommon;
 import org.kshmakov.jfs.io.FileAccessor;
 import org.kshmakov.jfs.io.HeaderOffsets;
 import org.kshmakov.jfs.io.Parameters;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 
 import static org.junit.Assert.*;
@@ -48,7 +46,7 @@ public class FileSystemDriverTest {
         assertEquals(47, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
     }
 
-    @Test(expected = JFSRefuseException.class)
+    @Test(expected = JFSException.class)
     public void test01() throws IOException, JFSException {
         DirectoryDescriptor rootDir = driver.rootInode();
         driver.tryAddDirectory(rootDir, "abacaba");
@@ -69,7 +67,7 @@ public class FileSystemDriverTest {
         assertEquals(46, accessor.readHeaderInt(HeaderOffsets.TOTAL_UNALLOCATED_BLOCKS));
     }
 
-    @Test(expected = JFSRefuseException.class)
+    @Test(expected = JFSException.class)
     public void test03() throws IOException, JFSException {
         DirectoryDescriptor rootDir = driver.rootInode();
         driver.tryAddDirectory(rootDir, LONG_NAME + "1");

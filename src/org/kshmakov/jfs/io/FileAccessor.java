@@ -1,7 +1,7 @@
 package org.kshmakov.jfs.io;
 
 import net.jcip.annotations.NotThreadSafe;
-import org.kshmakov.jfs.JFSException;
+import org.kshmakov.jfs.driver.JFSException;
 
 @NotThreadSafe
 public class FileAccessor extends FileAccessorBase {
