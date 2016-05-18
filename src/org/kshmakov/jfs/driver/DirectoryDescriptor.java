@@ -7,4 +7,18 @@ final public class DirectoryDescriptor {
     DirectoryDescriptor(int inodeId) {
         this.inodeId = inodeId;
     }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other instanceof DirectoryDescriptor) {
+            DirectoryDescriptor that = (DirectoryDescriptor) other;
+            return this.inodeId == that.inodeId;
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return inodeId;
+    }
 }

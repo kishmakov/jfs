@@ -257,8 +257,7 @@ public final class FileSystemDriver {
     }
 
     public DirectoryDescriptor tryAddDirectory(DirectoryDescriptor descriptor, String name) throws JFSException {
-        String resolution = NameHelper.inspect(name);
-        DriverHelper.refuseIf(!resolution.isEmpty(), resolution);
+        NameHelper.inspect(name);
 
         Lock writeLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].writeLock();
         writeLock.lock();
@@ -301,8 +300,7 @@ public final class FileSystemDriver {
     }
 
     public FileDescriptor tryAddFile(DirectoryDescriptor descriptor, String name) throws JFSException {
-        String resolution = NameHelper.inspect(name);
-        DriverHelper.refuseIf(!resolution.isEmpty(), resolution);
+        NameHelper.inspect(name);
 
         Lock writeLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].writeLock();
         writeLock.lock();
@@ -426,6 +424,23 @@ public final class FileSystemDriver {
             });
 
             return result;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @NotNull
+    public DirectoryDescriptor getParentDirectory(DirectoryDescriptor descriptor) throws JFSException {
+        Lock readLock = myInodesLocks[descriptor.inodeId % myInodesLocks.length].readLock();
+        readLock.lock();
+
+        try {
+
+            assert Parameters.typeToByte(Parameters.EntryType.DIRECTORY) ==
+                    (byte) (myAccessor.readInodeInt(descriptor.inodeId, InodeOffsets.INODE_DESCRIPTION) >> 24);
+
+            AllocatedInode inode = new AllocatedInode(myAccessor.readInode(descriptor.inodeId));
+            return new DirectoryDescriptor(inode.parentId);
         } finally {
             readLock.unlock();
         }

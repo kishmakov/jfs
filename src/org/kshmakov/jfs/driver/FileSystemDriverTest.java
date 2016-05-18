@@ -216,6 +216,20 @@ public class FileSystemDriverTest {
         }
     }
 
+    @Test
+    public void test10() throws IOException, JFSException {
+        DirectoryDescriptor rootDir = driver.rootInode();
+
+        DirectoryDescriptor aDir = driver.tryAddDirectory(rootDir, "a");
+        DirectoryDescriptor bDir = driver.tryAddDirectory(aDir, "b");
+
+        DirectoryDescriptor rtDir = driver.getParentDirectory(rootDir);
+
+        assertEquals(rootDir, driver.getParentDirectory(rootDir));
+        assertEquals(rootDir, driver.getParentDirectory(aDir));
+        assertEquals(aDir, driver.getParentDirectory(bDir));
+    }
+
     @After
     public void cleanUp() {
         TestCommon.cleanUp();

@@ -70,18 +70,19 @@ public class FileStreamsTest {
 
         writer.close();
 
-        FileInputStream inputStream = new FileInputStream(fs, fd);
+        for (int repetition = 0; repetition < 5; ++repetition) {
+            FileInputStream inputStream = new FileInputStream(fs, fd);
 
-        for (int i = 0; i < 513; i++) {
-            for (byte refByte = '0'; refByte <= '9'; refByte++) {
-                assertEquals(refByte, inputStream.read());
-            }
+            for (int i = 0; i < 513; i++) {
+                for (byte refByte = '0'; refByte <= '9'; refByte++) {
+                    assertEquals(refByte, inputStream.read());
+                }
 
-            for (byte refByte = 'A'; refByte <= 'F'; refByte++) {
-                assertEquals(refByte, inputStream.read());
+                for (byte refByte = 'A'; refByte <= 'F'; refByte++) {
+                    assertEquals(refByte, inputStream.read());
+                }
             }
         }
-
     }
 
     @Test

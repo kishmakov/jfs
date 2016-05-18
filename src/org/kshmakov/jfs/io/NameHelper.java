@@ -9,28 +9,26 @@ public interface NameHelper {
     String CHARSET = "UTF-8";
     short MAX_NAME_SIZE = 255;
 
-    static String inspect(String name) {
+    static void inspect(String name) throws JFSException {
         if (name.isEmpty()) {
-            return "entry name must not be empty";
+            throw new JFSException("entry name must not be empty");
         }
 
         if (name.indexOf(SEPARATOR) != -1) {
-            return "entry name must not contain separator character";
+            throw new JFSException("entry name must not contain separator character");
         }
 
         try {
             if (name.getBytes(CHARSET).length > MAX_NAME_SIZE) {
-                return "entry name length limit exceeded";
+                throw new JFSException("entry name length limit exceeded");
             }
         } catch (UnsupportedEncodingException e) {
-            return "jfs requires " + CHARSET + " support to be turned on";
+            throw new JFSException("jfs requires " + CHARSET + " support to be turned on");
         }
-
-        return "";
     }
 
     static byte[] toBytes(String name) throws JFSException {
-        assert inspect(name).isEmpty();
+        inspect(name);
 
         try {
             return name.getBytes(NameHelper.CHARSET);
